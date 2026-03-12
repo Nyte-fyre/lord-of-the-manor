@@ -7,17 +7,27 @@
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;800&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <style>
   :root {
-    --parchment: #f4e8c1;
-    --parchment-dark: #e8d4a0;
-    --parchment-deep: #d4b87a;
-    --ink: #2c1a0e;
-    --ink-light: #5c3d1e;
-    --red: #8b1a1a;
+    --parchment: #f2e6c8;
+    --parchment-dark: #e4d099;
+    --parchment-deep: #c8a85a;
+    --ink: #1e1005;
+    --ink-light: #3d2208;
+    --red: #7a1212;
     --gold: #c9a227;
     --gold-light: #e8c547;
-    --green: #2d5a1b;
-    --stone: #8a7a6a;
-    --stone-light: #b0a090;
+    --green: #1e4a0f;
+    --stone: #5a4a38;
+    --stone-light: #8a7a6a;
+
+    /* Section accent colors */
+    --sec-housing: #5c3a1e;
+    --sec-production: #2d5a1b;
+    --sec-commerce: #1a3d5c;
+    --sec-military: #5c1a1a;
+    --sec-faith: #3d1a5c;
+    --sec-prestige: #5c4a0a;
+    --sec-storage: #3a3a1e;
+    --sec-labor: #3d3020;
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -65,19 +75,18 @@
   #title-block { position: relative; }
   #title-block h1 {
     font-family: 'Cinzel', serif;
-    font-size: 28px;
+    font-size: 26px;
     font-weight: 800;
     color: var(--gold-light);
     text-shadow: 0 0 20px rgba(201,162,39,0.4), 2px 2px 4px rgba(0,0,0,0.8);
-    letter-spacing: 3px;
+    letter-spacing: 4px;
   }
   #title-block .subtitle {
     font-family: 'Crimson Text', serif;
     font-style: italic;
-    color: var(--parchment-dark);
+    color: #d4c090;
     font-size: 13px;
     letter-spacing: 1px;
-    opacity: 0.8;
   }
   #lord-info {
     text-align: center;
@@ -173,8 +182,8 @@
   .resource-item:hover { border-color: var(--parchment-deep); }
   .resource-left { display: flex; align-items: center; gap: 8px; }
   .resource-icon { font-size: 18px; width: 24px; text-align: center; }
-  .resource-name { font-size: 14px; color: var(--ink-light); font-weight: 600; }
-  .resource-rate { font-size: 11px; color: var(--green); }
+  .resource-name { font-size: 14px; color: var(--ink); font-weight: 600; }
+  .resource-rate { font-size: 12px; color: var(--green); font-weight: 600; }
   .resource-amount {
     font-family: 'Cinzel', serif;
     font-size: 14px;
@@ -189,17 +198,37 @@
   /* MIDDLE PANEL - Actions */
   #middle-panel { grid-column: 2; overflow-y: auto; max-height: calc(100vh - 90px); }
 
-  .action-section { margin-bottom: 14px; }
+  .action-section { margin-bottom: 16px; }
   .action-section-title {
     font-family: 'Cinzel', serif;
     font-size: 11px;
     letter-spacing: 2px;
-    color: var(--stone);
     text-transform: uppercase;
-    padding: 4px 0;
-    border-bottom: 1px solid var(--parchment-deep);
+    padding: 5px 8px;
     margin-bottom: 8px;
+    font-weight: 600;
+    border-radius: 2px;
+    color: #f0e8c8;
   }
+  /* Per-section color theming */
+  .section-Housing   .action-section-title { background: var(--sec-housing); }
+  .section-Production .action-section-title { background: var(--sec-production); }
+  .section-Commerce  .action-section-title { background: var(--sec-commerce); }
+  .section-Military  .action-section-title { background: var(--sec-military); }
+  .section-Faith     .action-section-title { background: var(--sec-faith); }
+  .section-Prestige  .action-section-title { background: var(--sec-prestige); }
+  .section-Storage   .action-section-title { background: var(--sec-storage); }
+  .section-Labor     .action-section-title { background: var(--sec-labor); }
+
+  /* Section border accent */
+  .section-Housing   { border-left: 3px solid var(--sec-housing); padding-left: 6px; }
+  .section-Production { border-left: 3px solid var(--sec-production); padding-left: 6px; }
+  .section-Commerce  { border-left: 3px solid var(--sec-commerce); padding-left: 6px; }
+  .section-Military  { border-left: 3px solid var(--sec-military); padding-left: 6px; }
+  .section-Faith     { border-left: 3px solid var(--sec-faith); padding-left: 6px; }
+  .section-Prestige  { border-left: 3px solid var(--sec-prestige); padding-left: 6px; }
+  .section-Storage   { border-left: 3px solid var(--sec-storage); padding-left: 6px; }
+  .section-Labor     { border-left: 3px solid var(--sec-labor); padding-left: 6px; }
 
   .action-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
 
@@ -227,7 +256,7 @@
   .action-btn .btn-cost {
     margin-top: 5px;
     font-size: 12px;
-    color: var(--stone);
+    color: var(--ink-light);
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
@@ -300,38 +329,71 @@
   .log-entry.bad { color: var(--red); }
   .log-entry.event { color: #6b4c11; font-style: italic; }
 
-  /* Chronicle (event history in right panel) */
-  .chronicle-entry {
-    padding: 7px 8px;
-    margin-bottom: 5px;
-    border-left: 3px solid var(--parchment-deep);
-    background: rgba(255,255,255,0.25);
+  /* Research section in left panel */
+  .left-section-title {
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 5px 8px;
+    margin-bottom: 8px;
+    font-weight: 600;
+    border-radius: 2px;
+    color: #f0e8c8;
   }
-  .chronicle-entry.choice-good { border-left-color: var(--green); }
-  .chronicle-entry.choice-bad  { border-left-color: var(--red); }
-  .chronicle-entry.choice-neutral { border-left-color: var(--gold); }
+  .research-title { background: #2a1a4a; }
+
+  .research-btn {
+    background: rgba(42,26,74,0.08);
+    border: 1px solid #8a6ab0;
+    padding: 8px 10px;
+    margin-bottom: 6px;
+    cursor: pointer;
+  }
+  .research-btn:active { background: rgba(42,26,74,0.18); }
+  .research-locked {
+    opacity: 0.5;
+    cursor: not-allowed;
+    border-color: var(--parchment-deep);
+  }
+  .research-btn-name {
+    font-family: 'Cinzel', serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: #2a1a4a;
+    margin-bottom: 2px;
+  }
+  .research-btn-desc { font-size: 12px; color: var(--ink-light); font-style: italic; margin-bottom: 4px; }
+  .research-btn-cost { font-size: 12px; display: flex; gap: 8px; }
+  .research-done-item {
+    font-size: 12px;
+    color: var(--green);
+    padding: 3px 6px;
+    border-left: 2px solid var(--green);
+    margin-bottom: 3px;
+    background: rgba(30,74,15,0.07);
+  }
+
+  /* Improved chronicle readability */
+  .chronicle-entry {
+    padding: 8px 10px;
+    margin-bottom: 6px;
+    border-left: 3px solid var(--parchment-deep);
+    background: rgba(255,255,255,0.35);
+  }
+  .chronicle-entry.choice-good { border-left-color: var(--green); background: rgba(30,74,15,0.07); }
+  .chronicle-entry.choice-bad  { border-left-color: var(--red); background: rgba(122,18,18,0.06); }
+  .chronicle-entry.choice-neutral { border-left-color: var(--gold); background: rgba(201,162,39,0.07); }
   .chronicle-event-title {
     font-family: 'Cinzel', serif;
     font-size: 11px;
-    color: var(--ink-light);
-    font-weight: 600;
-    margin-bottom: 2px;
-  }
-  .chronicle-choice {
-    font-size: 13px;
-    font-style: italic;
     color: var(--ink);
-    margin-bottom: 2px;
+    font-weight: 600;
+    margin-bottom: 3px;
   }
-  .chronicle-outcome {
-    font-size: 12px;
-    color: var(--stone);
-  }
-  .chronicle-year {
-    font-size: 10px;
-    color: var(--stone-light);
-    float: right;
-  }
+  .chronicle-choice { font-size: 13px; font-style: italic; color: var(--ink); margin-bottom: 2px; }
+  .chronicle-outcome { font-size: 12px; color: var(--ink-light); font-weight: 600; }
+  .chronicle-year { font-size: 10px; color: var(--stone); float: right; }
 
   /* Milestone banner */
   #milestone-banner {
@@ -381,10 +443,11 @@
 
   .season-indicator {
     font-family: 'Cinzel', serif;
-    font-size: 12px;
-    color: var(--stone-light);
+    font-size: 13px;
+    color: var(--ink-light);
     text-align: center;
     padding: 4px;
+    font-weight: 600;
   }
   #year-display { color: var(--gold); font-weight: 600; }
 
@@ -392,7 +455,7 @@
 
   /* Population happiness meter */
   .meter-wrap { margin: 6px 0; }
-  .meter-label { font-size: 12px; color: var(--ink-light); margin-bottom: 3px; display: flex; justify-content: space-between; }
+  .meter-label { font-size: 13px; color: var(--ink); margin-bottom: 3px; display: flex; justify-content: space-between; font-weight: 600; }
   .meter-track { height: 8px; background: var(--parchment-deep); border-radius: 4px; overflow: hidden; }
   .meter-fill { height: 100%; border-radius: 4px; transition: width 0.5s, background 0.5s; }
   .meter-fill.happiness { background: linear-gradient(to right, #8b1a1a, #c9a227, #2d5a1b); }
@@ -410,7 +473,7 @@
 
 <div id="overlay"></div>
 <div id="milestone-banner">
-  <h2 id="milestone-title">⚜ Achievement ⚜</h2>
+  <h2 id="milestone-title">Achievement Unlocked</h2>
   <p id="milestone-desc"></p>
   <button id="milestone-close" onclick="closeMilestone()">Continue</button>
 </div>
@@ -418,8 +481,8 @@
 <div id="game-wrapper">
   <div id="header">
     <div id="title-block">
-      <h1>⚜ LORD OF THE MANOR ⚜</h1>
-      <div class="subtitle">An idle chronicle of feudal ambition &nbsp;·&nbsp; v1.5</div>
+      <h1>LORD OF THE MANOR</h1>
+      <div class="subtitle">An idle chronicle of feudal ambition &nbsp;·&nbsp; v1.6</div>
     </div>
     <div id="lord-info">
       <div id="lord-title">LORD OF</div>
@@ -470,6 +533,12 @@
 
       <div class="divider"></div>
       <div id="resource-list"></div>
+      <div class="divider"></div>
+      <div id="research-section" style="display:none">
+        <div class="left-section-title research-title">📖 Research</div>
+        <div id="research-available"></div>
+        <div id="research-done-list"></div>
+      </div>
     </div>
   </div>
 
@@ -501,7 +570,7 @@ const G = {
   season: 0, // 0=spring,1=summer,2=autumn,3=winter
   year: 1,
   seasonTick: 0,
-  ticksPerSeason: 120,
+  ticksPerSeason: 200,
   renown: 0,
   happiness: 50,
   eventCooldown: 0,
@@ -539,7 +608,8 @@ const G = {
   },
 
   log: [],
-  chronicle: [], // event history with choices
+  chronicle: [],
+  unlockedStorage: new Set(), // storage upgrades that have ever been shown
   milestones: new Set(),
 };
 
@@ -593,7 +663,7 @@ function milestone(id, title, desc) {
 }
 
 function showMilestone(title, desc) {
-  document.getElementById('milestone-title').textContent = '⚜ ' + title + ' ⚜';
+  document.getElementById('milestone-title').textContent = title;
   document.getElementById('milestone-desc').textContent = desc;
   document.getElementById('milestone-banner').classList.add('show');
   document.getElementById('overlay').classList.add('show');
@@ -614,9 +684,9 @@ function computeRates() {
   const cropMult = G.tech.crop_rotation.done ? 1.5 : 1;
   const tradeMult = G.tech.trade_routes.done ? 2 : 1;
 
-  // Food from farms minus consumption
+  // Food from farms minus consumption (scales with pop)
   r.food.rate += G.bldg.farm.count * 1.5 * cropMult * ironMult;
-  r.food.rate -= pop * 0.08; // consumption
+  r.food.rate -= pop * 0.13; // consumption scales with mouths
 
   // Wood from sawmills
   r.wood.rate += G.bldg.sawmill.count * 1.0 * ironMult;
@@ -724,7 +794,7 @@ function triggerRandomEvent() {
 let _currentEventTitle = '';
 
 function setEvent(title, text, choices) {
-  _currentEventTitle = title.replace(/^[^a-zA-Z]+/, '').trim(); // strip emoji prefix for chronicle
+  _currentEventTitle = title.replace(/^[^a-zA-Z]+/, '').trim();
   document.getElementById('event-title').textContent = title;
   document.getElementById('event-text').textContent = text;
   const c = document.getElementById('event-choices');
@@ -732,15 +802,20 @@ function setEvent(title, text, choices) {
   choices.forEach(ch => {
     const btn = document.createElement('button');
     btn.className = 'event-choice-btn';
-    btn.textContent = ch.text;
+    // Check affordability
+    const affordable = ch.canAfford ? ch.canAfford() : true;
+    btn.textContent = ch.text + (affordable ? '' : '  ✗ Cannot afford');
+    if(!affordable) {
+      btn.disabled = true;
+      btn.style.opacity = '0.45';
+      btn.style.cursor = 'not-allowed';
+    }
     btn.onclick = () => {
-      // Capture log length before choice so we can detect the outcome message added
+      if(!affordable) return;
       const logBefore = G.log.length;
       ch.fn();
-      // The choice fn calls addLog with the outcome — grab the newest entry
       const outcome = G.log.length > logBefore ? G.log[0].text : '';
       const outType = G.log.length > logBefore ? G.log[0].type : '';
-      // Record to chronicle
       G.chronicle.unshift({
         eventTitle: _currentEventTitle,
         choice: ch.text,
@@ -778,93 +853,119 @@ function renderChronicle() {
 }
 
 function eventTraveler() {
-  addLog('A wandering scholar arrived at the gates.', 'event');
-  setEvent('⚜ A Wandering Scholar',
-    'A learned man seeks shelter at your manor. He offers knowledge in exchange for a meal and a warm bed.',
+  setEvent('A Wandering Scholar',
+    'A learned man seeks shelter at your manor. He offers knowledge of crop yields and animal husbandry in exchange for a meal and a warm bed.',
     [
-      { text: '🍞 Welcome him (−5 food)', fn: () => { G.res.food.amount = Math.max(0, G.res.food.amount-5); G.happiness = Math.min(100, G.happiness+5); addLog('The scholar shared wisdom. Happiness rose.','good'); }},
-      { text: '🚪 Turn him away', fn: () => { G.happiness -= 3; addLog('The scholar was turned away. The peasants murmur.','bad'); }},
+      { text: '🍞 Welcome him (−5 food)', canAfford: () => G.res.food.amount >= 5,
+        fn: () => { G.res.food.amount -= 5; G.happiness = Math.min(100, G.happiness+8);
+          if(!G.tech.crop_rotation.done) { G.tech.crop_rotation.done = true; applyTech('crop_rotation'); addLog('The scholar taught crop rotation! Farms now +50% food.','good'); renderResearch(); }
+          else { addLog('The scholar shared wisdom. +8 happiness.','good'); }
+        }},
+      { text: '🚪 Turn him away', canAfford: () => true,
+        fn: () => { G.happiness -= 4; addLog('The scholar was turned away. The peasants murmur. −4 happiness.','bad'); }},
     ]);
 }
 
 function eventBandits() {
-  addLog('⚔️ Bandits spotted near the village!', 'bad');
   const hasSoldiers = G.res.soldiers.amount >= 3;
-  const canPay = G.res.gold.amount >= 10;
-  setEvent('⚔️ Bandits at the Gates!',
+  setEvent('Bandits at the Gates!',
     'A band of desperate men threaten your outlying farms. The village is afraid.',
     hasSoldiers
       ? [
-          { text: '⚔️ Send soldiers (−3 soldiers)', fn: () => { G.res.soldiers.amount = Math.max(0, G.res.soldiers.amount-3); G.happiness += 8; addLog('Your soldiers drove off the bandits!','good'); }},
-          { text: `💰 Pay them off (−10 gold)${canPay?'':'  [Not enough gold]'}`, fn: () => { if(G.res.gold.amount>=10){G.res.gold.amount-=10; addLog('You paid the bandits. They left peacefully.','');}else{G.res.food.amount=Math.max(0,G.res.food.amount-15); addLog('Not enough gold — they raided a farm! −15 food.','bad');}}},
+          { text: '⚔️ Send soldiers (−3 soldiers)', canAfford: () => G.res.soldiers.amount >= 3,
+            fn: () => { G.res.soldiers.amount -= 3; G.happiness += 10; G.renown += 3; addLog('Your soldiers drove off the bandits! +10 happiness, +3 renown.','good'); }},
+          { text: '💰 Pay them off (−10 gold)', canAfford: () => G.res.gold.amount >= 10,
+            fn: () => { G.res.gold.amount -= 10; addLog('You paid the bandits. They left peacefully. −10 gold.',''); }},
+          { text: '🙏 Hide and pray', canAfford: () => true,
+            fn: () => { G.res.food.amount = Math.max(0,G.res.food.amount-20); G.happiness -= 10; addLog('The bandits ransacked a farm. −20 food, −10 happiness.','bad'); }},
         ]
       : [
-          { text: `💰 Pay them off (−10 gold)${canPay?'':'  [Not enough gold]'}`, fn: () => { if(G.res.gold.amount>=10){G.res.gold.amount-=10; G.happiness+=3; addLog('You paid the bandits. They left peacefully.');}else{G.res.food.amount=Math.max(0,G.res.food.amount-15); addLog('Not enough gold — they raided! −15 food.','bad');}}},
-          { text: '🙏 Hide and pray', fn: () => { G.res.food.amount=Math.max(0,G.res.food.amount-20); G.happiness-=10; addLog('The bandits ransacked a farm. −20 food, −10 happiness.','bad'); }},
+          { text: '💰 Pay them off (−10 gold)', canAfford: () => G.res.gold.amount >= 10,
+            fn: () => { G.res.gold.amount -= 10; G.happiness += 3; addLog('You paid the bandits. They left peacefully. −10 gold.',''); }},
+          { text: '🙏 Hide and pray', canAfford: () => true,
+            fn: () => { G.res.food.amount=Math.max(0,G.res.food.amount-20); G.happiness-=10; addLog('The bandits ransacked a farm. −20 food, −10 happiness.','bad'); }},
         ]
   );
 }
 
 function eventMerchant() {
-  addLog('A merchant from afar seeks to trade.', 'event');
-  setEvent('🧳 A Foreign Merchant',
+  setEvent('A Foreign Merchant',
     'A merchant from a distant city wishes to buy your surplus goods. He offers gold for either food or wood.',
     [
-      { text: '🌾 Sell food (−20 food, +15 gold)', fn: () => { if(G.res.food.amount>=20){G.res.food.amount-=20;G.res.gold.amount=Math.min(G.res.gold.max,G.res.gold.amount+15);addLog('Sold food to merchant. +15 gold.','good');}else{addLog('Not enough food to sell.','bad');}}},
-      { text: '🪵 Sell wood (−20 wood, +12 gold)', fn: () => { if(G.res.wood.amount>=20){G.res.wood.amount-=20;G.res.gold.amount=Math.min(G.res.gold.max,G.res.gold.amount+12);addLog('Sold timber to merchant. +12 gold.','good');}else{addLog('Not enough wood to sell.','bad');}}},
-      { text: '👋 Send him on his way', fn: () => addLog('The merchant left, disappointed.') },
+      { text: '🌾 Sell food (−20 food, +18 gold)', canAfford: () => G.res.food.amount >= 20,
+        fn: () => { G.res.food.amount -= 20; G.res.gold.amount = Math.min(G.res.gold.max, G.res.gold.amount+18); addLog('Sold food to merchant. +18 gold.','good'); }},
+      { text: '🪵 Sell wood (−20 wood, +14 gold)', canAfford: () => G.res.wood.amount >= 20,
+        fn: () => { G.res.wood.amount -= 20; G.res.gold.amount = Math.min(G.res.gold.max, G.res.gold.amount+14); addLog('Sold timber to merchant. +14 gold.','good'); }},
+      { text: '👋 Send him away', canAfford: () => true,
+        fn: () => addLog('The merchant left, disappointed.') },
     ]);
 }
 
 function eventDrought() {
-  addLog('🌵 A drought threatens the harvest!', 'bad');
-  setEvent('🌵 The Great Drought',
-    'The wells run low and the fields crack. The harvest will be poor unless action is taken.',
+  setEvent('The Great Drought',
+    'The wells run low and the fields crack. Your farms will fail unless wells are dug.',
     [
-      { text: `💰 Dig new wells (−20 gold)${G.res.gold.amount>=20?'':'  [Not enough gold]'}`, fn: () => { if(G.res.gold.amount>=20){G.res.gold.amount-=20;G.happiness+=5;addLog('New wells dug. The drought is weathered. −20 gold.','good');}else{G.res.food.amount=Math.max(0,G.res.food.amount-30);addLog('Could not afford wells. Crops failed! −30 food.','bad');}  }},
-      { text: '🙏 Pray for rain (free, risky)', fn: () => { const rain=Math.random()<0.4; if(rain){addLog('The rains came! Disaster averted.','good');G.happiness+=3;}else{G.res.food.amount=Math.max(0,G.res.food.amount-20);addLog('No rain came. The harvest withered. −20 food.','bad');}}},
+      { text: '💰 Dig new wells (−20 gold)', canAfford: () => G.res.gold.amount >= 20,
+        fn: () => { G.res.gold.amount -= 20; G.happiness += 5; addLog('New wells dug. The drought is weathered. −20 gold, +5 happiness.','good'); }},
+      { text: '🙏 Pray for rain (free, risky)', canAfford: () => true,
+        fn: () => { if(Math.random()<0.4){ addLog('The rains came! Disaster averted. +3 happiness.','good'); G.happiness+=3; }
+          else { G.res.food.amount=Math.max(0,G.res.food.amount-25); addLog('No rain came. The harvest withered. −25 food.','bad'); }}},
     ]);
 }
 
 function eventDisease() {
-  addLog('🤒 A sickness spreads through the village!', 'bad');
-  setEvent('🤒 The Sickness',
-    'Coughing and fever spread through the hovels. The village healer speaks of ill humours.',
+  setEvent('The Sickness',
+    'Coughing and fever spread through the hovels. Without a physician it will ravage happiness and productivity.',
     [
-      { text: `🌿 Bring a physician (−15 gold)${G.res.gold.amount>=15?'':'  [Not enough gold]'}`, fn: () => { if(G.res.gold.amount>=15){G.res.gold.amount-=15;G.happiness+=8;addLog('The physician contained the sickness. −15 gold, +8 happiness.','good');}else{G.happiness-=15;addLog('No physician could be afforded. Sickness spread. −15 happiness.','bad');}}},
-      { text: '🏚️ Quarantine the sick (free)', fn: () => { G.happiness-=5; addLog('The sick were quarantined. Harsh but effective. −5 happiness.'); }},
+      { text: '🌿 Bring a physician (−15 gold)', canAfford: () => G.res.gold.amount >= 15,
+        fn: () => { G.res.gold.amount -= 15; G.happiness += 10; addLog('The physician contained the sickness. −15 gold, +10 happiness.','good'); }},
+      { text: '🏚️ Quarantine the sick (free)', canAfford: () => true,
+        fn: () => { G.happiness -= 6; addLog('The sick were quarantined. Contained but costly. −6 happiness.','bad'); }},
     ]);
 }
 
 function eventNoble() {
-  addLog('👑 A neighboring lord wishes to visit!', 'event');
-  setEvent('👑 A Noble Visit',
-    'Lord Aldric of the neighboring county sends word — he wishes to dine at your manor. His impression of you matters.',
+  setEvent('A Noble Visit',
+    'Lord Aldric of the neighboring county wishes to dine at your manor. A grand feast will earn his alliance and boost your renown greatly.',
     [
-      { text: `🍷 Grand feast (−30 food, −20 gold)${G.res.food.amount>=30&&G.res.gold.amount>=20?'':'  [Cannot afford]'}`, fn: () => { if(G.res.food.amount>=30&&G.res.gold.amount>=20){G.res.food.amount-=30;G.res.gold.amount-=20;G.renown+=15;G.happiness+=5;addLog('The feast was a great success! +15 renown, +5 happiness.','good');}else{addLog('Could not afford the feast. Lord Aldric was unimpressed. −5 renown.','bad'); G.renown=Math.max(0,G.renown-5);}}},
-      { text: `🤝 Simple welcome (−10 food)${G.res.food.amount>=10?'':'  [Not enough food]'}`, fn: () => { if(G.res.food.amount>=10){G.res.food.amount-=10;G.renown+=5;addLog('Lord Aldric was modestly pleased. +5 renown.','good');}else{addLog('You had barely anything to offer. Embarrassing.','bad');}}},
-      { text: '📜 Decline politely', fn: () => { G.renown = Math.max(0, G.renown-3); addLog('You declined the visit. The lords talk. −3 renown.','bad'); }},
+      { text: '🍷 Grand feast (−30 food, −20 gold)', canAfford: () => G.res.food.amount >= 30 && G.res.gold.amount >= 20,
+        fn: () => { G.res.food.amount -= 30; G.res.gold.amount -= 20; G.renown += 20; G.happiness += 8; addLog('The feast was a triumph! +20 renown, +8 happiness.','good'); }},
+      { text: '🤝 Simple welcome (−10 food)', canAfford: () => G.res.food.amount >= 10,
+        fn: () => { G.res.food.amount -= 10; G.renown += 6; addLog('Lord Aldric was modestly pleased. +6 renown.','good'); }},
+      { text: '📜 Decline politely', canAfford: () => true,
+        fn: () => { G.renown = Math.max(0, G.renown-4); addLog('You declined. The lords talk. −4 renown.','bad'); }},
     ]);
 }
 
 function eventGoodHarvest() {
-  const bonus = Math.floor(10 + Math.random() * 15);
+  const bonus = Math.floor(12 + Math.random() * 18);
   G.res.food.amount = Math.min(G.res.food.max, G.res.food.amount + bonus);
   G.happiness += 5;
-  addLog(`🌻 Exceptional harvest! +${bonus} food. The people rejoice.`, 'good');
-  setEvent('🌻 A Bountiful Harvest!',
-    `The summer sun has blessed your fields. The granaries overflow with ${bonus} extra bushels of grain. Songs are sung in your name.`,
-    [{ text: '🎉 Celebrate! (small feast)', fn: () => { G.res.food.amount=Math.max(0,G.res.food.amount-10); G.happiness=Math.min(100,G.happiness+10); addLog('A small feast was held. The village is merry.','good');}}]);
+  setEvent('A Bountiful Harvest!',
+    `The summer sun has blessed your fields with ${bonus} extra bushels. Celebrate or save the surplus?`,
+    [
+      { text: '🎉 Hold a village feast', canAfford: () => true,
+        fn: () => { G.res.food.amount=Math.max(0,G.res.food.amount-10); G.happiness=Math.min(100,G.happiness+12); addLog(`Bountiful harvest! Feast held. +${bonus} food, +12 happiness.`,'good'); }},
+      { text: '🏚️ Save the surplus', canAfford: () => true,
+        fn: () => { addLog(`Bountiful harvest! Surplus saved. +${bonus} food stored for winter.`,'good'); }},
+    ]);
 }
 
 function triggerWinterEvent() {
-  const foodNeeded = getPopulation() * 3;
+  const foodNeeded = getPopulation() * 4;
   if(G.res.food.amount < foodNeeded) {
-    G.happiness -= 15;
-    addLog('❄️ Winter famine! Food runs dangerously low. The people starve.', 'bad');
-    setEvent('❄️ A Bitter Winter', 'The stores are nearly empty. Hunger gnaws at every belly in the village. Without food, people will die.', [{ text: 'Endure it stoically', fn:()=>addLog('The winter is endured, barely.') }]);
+    G.happiness -= 18;
+    setEvent('A Bitter Winter',
+      'The stores are nearly empty. Hunger gnaws at every belly. Without food, your people will suffer greatly.',
+      [
+        { text: '🛒 Buy emergency grain (−25 gold)', canAfford: () => G.res.gold.amount >= 25,
+          fn: () => { G.res.gold.amount -= 25; G.res.food.amount = Math.min(G.res.food.max, G.res.food.amount+30); addLog('Emergency grain purchased. −25 gold, +30 food.','good'); }},
+        { text: '😔 Endure the famine', canAfford: () => true,
+          fn: () => { G.happiness -= 10; addLog('The winter famine is endured. The people suffer. −10 more happiness.','bad'); }},
+      ]);
+    addLog('❄️ Winter famine! Stores dangerously low.', 'bad');
   } else {
-    addLog('❄️ Winter comes. The stores hold.', 'event');
+    addLog('❄️ Winter comes. The stores hold firm.', 'event');
   }
 }
 
@@ -976,28 +1077,28 @@ const BUILDINGS = [
     id:'granary', name:'Build Granary', icon:'🏗️', section:'Storage',
     desc:`Increases food storage by 100`,
     cost: () => ({ wood:20, stone:10, gold:15 }),
-    canShow: () => G.res.food.amount >= G.res.food.max * 0.85,
+    canShow: () => { if(G.res.food.amount >= G.res.food.max * 0.85) G.unlockedStorage.add('granary'); return G.unlockedStorage.has('granary'); },
     onBuy: () => { G.res.food.max += 100; addLog(`Granary built! Food storage now ${G.res.food.max}.`,'good'); },
   },
   {
     id:'lumber_yard', name:'Lumber Yard', icon:'🪵', section:'Storage',
     desc:`Increases wood storage by 100`,
     cost: () => ({ wood:25, gold:12 }),
-    canShow: () => G.res.wood.amount >= G.res.wood.max * 0.85,
+    canShow: () => { if(G.res.wood.amount >= G.res.wood.max * 0.85) G.unlockedStorage.add('lumber_yard'); return G.unlockedStorage.has('lumber_yard'); },
     onBuy: () => { G.res.wood.max += 100; addLog(`Lumber yard built! Wood storage now ${G.res.wood.max}.`,'good'); },
   },
   {
     id:'treasury', name:'Expand Treasury', icon:'🏦', section:'Storage',
     desc:`Increases gold storage by 250`,
     cost: () => ({ stone:20, gold:50 }),
-    canShow: () => G.res.gold.amount >= G.res.gold.max * 0.85,
+    canShow: () => { if(G.res.gold.amount >= G.res.gold.max * 0.85) G.unlockedStorage.add('treasury'); return G.unlockedStorage.has('treasury'); },
     onBuy: () => { G.res.gold.max += 250; addLog(`Treasury expanded! Gold storage now ${G.res.gold.max}.`,'good'); },
   },
   {
     id:'stone_yard', name:'Stone Yard', icon:'🪨', section:'Storage',
     desc:`Increases stone storage by 100`,
     cost: () => ({ wood:15, gold:10 }),
-    canShow: () => !G.res.stone.hidden && G.res.stone.amount >= G.res.stone.max * 0.85,
+    canShow: () => { if(!G.res.stone.hidden && G.res.stone.amount >= G.res.stone.max * 0.85) G.unlockedStorage.add('stone_yard'); return G.unlockedStorage.has('stone_yard'); },
     onBuy: () => { G.res.stone.max += 100; addLog(`Stone yard built! Stone storage now ${G.res.stone.max}.`,'good'); },
   },
 ];
@@ -1148,6 +1249,7 @@ function updateUI() {
 
   // Actions
   renderActions();
+  renderResearch();
 }
 
 // Returns a short production preview string for buildings
@@ -1175,6 +1277,60 @@ function prodPreview(id) {
   return previews[id] || '';
 }
 
+// ---- RESEARCH (left panel) ----
+function renderResearch() {
+  const section = document.getElementById('research-section');
+  const availEl = document.getElementById('research-available');
+  const doneEl = document.getElementById('research-done-list');
+  if(!section || !availEl || !doneEl) return;
+
+  const available = TECHS_LIST.filter(t => !t.done && t.canShow());
+  const done = TECHS_LIST.filter(t => t.done);
+
+  // Show section if any tech ever visible
+  if(available.length > 0 || done.length > 0) section.style.display = '';
+
+  // Available techs as clickable buttons
+  availEl.innerHTML = '';
+  available.forEach(t => {
+    const cost = t.cost;
+    const affordable = canAfford(cost);
+    const costHtml = Object.entries(cost).map(([k,v]) => {
+      const res = G.res[k];
+      const have = k==='renown' ? G.renown : (res?.amount ?? 0);
+      const icon = k==='renown' ? '⚜' : (res?.icon ?? '');
+      return `<span style="color:${have>=v?'var(--green)':'var(--red)'};">${icon}${v}</span>`;
+    }).join(' ');
+
+    const btn = document.createElement('div');
+    btn.className = 'research-btn' + (affordable ? '' : ' research-locked');
+    btn.innerHTML = `
+      <div class="research-btn-name">${t.name}</div>
+      <div class="research-btn-desc">${t.desc}</div>
+      <div class="research-btn-cost">${costHtml}</div>
+    `;
+    if(affordable) {
+      btn.onclick = () => {
+        spend(t.cost);
+        G.tech[t.id].done = true;
+        applyTech(t.id);
+        addLog(`Research complete: ${t.name}! ${t.desc}`, 'good');
+        G.chronicle.unshift({ eventTitle:'Research', choice: t.name, outcome: t.desc, outType:'good', year:G.year, season:SEASON_NAMES[G.season] });
+        renderChronicle();
+        renderResearch();
+        _renderedItemIds = ''; // force button rebuild for prod previews
+      };
+    }
+    availEl.appendChild(btn);
+  });
+
+  // Completed techs as history list (newest first, stable)
+  doneEl.innerHTML = done.reverse().map(t =>
+    `<div class="research-done-item">✓ <strong>${t.name}</strong> — ${t.desc}</div>`
+  ).join('');
+  done.reverse(); // restore order
+}
+
 // Track which items are currently rendered so we only rebuild when the list changes
 let _renderedItemIds = '';
 
@@ -1184,7 +1340,7 @@ function renderActions() {
   const allItems = [
     ...BUILDINGS.filter(b => b.canShow()),
     ...ACTIONS.filter(a => a.canShow()),
-    ...TECHS_LIST.filter(t => !t.done && t.canShow()),
+    // Research is now in the left panel
   ];
 
   // Only fully rebuild if the set of visible items changed
@@ -1201,7 +1357,7 @@ function renderActions() {
 
     for(let [sec, items] of Object.entries(sections)) {
       const secDiv = document.createElement('div');
-      secDiv.className = 'action-section';
+      secDiv.className = `action-section section-${sec.replace(/\s/g,'_')}`;
       secDiv.innerHTML = `<div class="action-section-title">${sec}</div><div class="action-grid" id="sec-${sec.replace(/\s/g,'_')}"></div>`;
       body.appendChild(secDiv);
 
