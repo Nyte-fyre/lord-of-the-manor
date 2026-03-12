@@ -230,51 +230,57 @@
   .section-Storage   { border-left: 3px solid var(--sec-storage); padding-left: 6px; }
   .section-Labor     { border-left: 3px solid var(--sec-labor); padding-left: 6px; }
 
-  .action-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+  .action-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px; }
 
   .action-btn {
     background: linear-gradient(135deg, var(--parchment-dark), var(--parchment));
     border: 1px solid var(--parchment-deep);
-    padding: 10px 12px;
+    padding: 7px 8px;
     cursor: pointer;
     text-align: left;
     position: relative;
-    overflow: hidden;
     font-family: 'Crimson Text', serif;
+    display: flex;
+    flex-direction: row;
+    gap: 6px;
+    align-items: flex-start;
   }
   .action-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-  .action-btn .btn-icon { font-size: 24px; display: block; margin-bottom: 3px; }
+  .btn-left { flex: 1; min-width: 0; }
+  .btn-right { display: flex; flex-direction: column; align-items: flex-end; justify-content: flex-start; gap: 3px; min-width: 50px; padding-top: 2px; }
+  .action-btn .btn-icon { font-size: 18px; display: block; margin-bottom: 2px; }
   .action-btn .btn-name {
     font-family: 'Cinzel', serif;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
     color: var(--ink);
     display: block;
-    margin-bottom: 2px;
+    margin-bottom: 1px;
+    line-height: 1.2;
   }
-  .action-btn .btn-desc { font-size: 13px; color: var(--ink-light); font-style: italic; line-height: 1.3; }
+  .action-btn .btn-desc { font-size: 11px; color: var(--ink-light); font-style: italic; line-height: 1.3; }
+  .btn-preview { font-size: 11px; color: var(--green); font-weight: 600; text-align: right; white-space: nowrap; }
   .action-btn .btn-cost {
-    margin-top: 5px;
-    font-size: 12px;
-    color: var(--ink-light);
+    font-size: 11px;
     display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 1px;
   }
-  .cost-item { display: flex; align-items: center; gap: 2px; }
-  .cost-item.can-afford { color: var(--green); }
+  .cost-item { display: flex; align-items: center; gap: 2px; white-space: nowrap; }
+  .cost-item.can-afford { color: var(--green); font-weight: 600; }
   .cost-item.cant-afford { color: var(--red); }
 
   .action-btn .count-badge {
     position: absolute;
-    top: 6px;
-    right: 8px;
+    top: 4px;
+    right: 4px;
     background: var(--ink);
     color: var(--gold);
     font-family: 'Cinzel', serif;
-    font-size: 11px;
-    padding: 1px 5px;
-    border-radius: 10px;
+    font-size: 10px;
+    padding: 1px 4px;
+    border-radius: 8px;
   }
 
   /* RIGHT PANEL - Events & Log */
@@ -365,14 +371,14 @@
   }
   .research-btn-desc { font-size: 12px; color: var(--ink-light); font-style: italic; margin-bottom: 4px; }
   .research-btn-cost { font-size: 12px; display: flex; gap: 8px; }
-  .research-done-item {
-    font-size: 12px;
-    color: var(--green);
-    padding: 3px 6px;
-    border-left: 2px solid var(--green);
-    margin-bottom: 3px;
-    background: rgba(30,74,15,0.07);
+  .research-done {
+    opacity: 0.5;
+    cursor: default;
+    background: rgba(30,74,15,0.08);
+    border-color: var(--green);
+    pointer-events: none;
   }
+  .research-done .research-btn-name { color: var(--green); }
 
   /* Improved chronicle readability */
   .chronicle-entry {
@@ -482,7 +488,7 @@
   <div id="header">
     <div id="title-block">
       <h1>LORD OF THE MANOR</h1>
-      <div class="subtitle">An idle chronicle of feudal ambition &nbsp;·&nbsp; v1.6</div>
+      <div class="subtitle">An idle chronicle of feudal ambition &nbsp;·&nbsp; v1.7</div>
     </div>
     <div id="lord-info">
       <div id="lord-title">LORD OF</div>
@@ -537,7 +543,6 @@
       <div id="research-section" style="display:none">
         <div class="left-section-title research-title">📖 Research</div>
         <div id="research-available"></div>
-        <div id="research-done-list"></div>
       </div>
     </div>
   </div>
@@ -792,39 +797,52 @@ function triggerRandomEvent() {
 }
 
 let _currentEventTitle = '';
+let _activeChoices = []; // stored so we can re-check affordability
 
 function setEvent(title, text, choices) {
   _currentEventTitle = title.replace(/^[^a-zA-Z]+/, '').trim();
+  _activeChoices = choices;
   document.getElementById('event-title').textContent = title;
   document.getElementById('event-text').textContent = text;
+  renderEventChoices();
+}
+
+function renderEventChoices() {
   const c = document.getElementById('event-choices');
+  if(!c || !_activeChoices.length) return;
+  // Preserve existing buttons if same count — just patch disabled state
+  const existing = c.querySelectorAll('.event-choice-btn');
+  if(existing.length === _activeChoices.length) {
+    _activeChoices.forEach((ch, i) => {
+      const btn = existing[i];
+      const affordable = ch.canAfford ? ch.canAfford() : true;
+      btn.disabled = !affordable;
+      btn.style.opacity = affordable ? '' : '0.4';
+      btn.style.cursor = affordable ? 'pointer' : 'not-allowed';
+      btn.querySelector('.choice-label').textContent = ch.text;
+      btn.querySelector('.choice-lock').textContent = affordable ? '' : '✗';
+    });
+    return;
+  }
+  // Full rebuild
   c.innerHTML = '';
-  choices.forEach(ch => {
+  _activeChoices.forEach(ch => {
+    const affordable = ch.canAfford ? ch.canAfford() : true;
     const btn = document.createElement('button');
     btn.className = 'event-choice-btn';
-    // Check affordability
-    const affordable = ch.canAfford ? ch.canAfford() : true;
-    btn.textContent = ch.text + (affordable ? '' : '  ✗ Cannot afford');
-    if(!affordable) {
-      btn.disabled = true;
-      btn.style.opacity = '0.45';
-      btn.style.cursor = 'not-allowed';
-    }
+    btn.disabled = !affordable;
+    btn.style.opacity = affordable ? '' : '0.4';
+    btn.style.cursor = affordable ? 'pointer' : 'not-allowed';
+    btn.innerHTML = `<span class="choice-lock" style="color:var(--red);margin-right:4px">${affordable?'':'✗'}</span><span class="choice-label">${ch.text}</span>`;
     btn.onclick = () => {
-      if(!affordable) return;
+      if(!( ch.canAfford ? ch.canAfford() : true)) return;
       const logBefore = G.log.length;
       ch.fn();
       const outcome = G.log.length > logBefore ? G.log[0].text : '';
       const outType = G.log.length > logBefore ? G.log[0].type : '';
-      G.chronicle.unshift({
-        eventTitle: _currentEventTitle,
-        choice: ch.text,
-        outcome,
-        outType,
-        year: G.year,
-        season: SEASON_NAMES[G.season],
-      });
+      G.chronicle.unshift({ eventTitle: _currentEventTitle, choice: ch.text, outcome, outType, year: G.year, season: SEASON_NAMES[G.season] });
       if(G.chronicle.length > 30) G.chronicle.pop();
+      _activeChoices = [];
       clearEvent();
       renderChronicle();
     };
@@ -833,7 +851,8 @@ function setEvent(title, text, choices) {
 }
 
 function clearEvent() {
-  document.getElementById('event-title').textContent = '⚜ Manor News';
+  _activeChoices = [];
+  document.getElementById('event-title').textContent = 'Manor News';
   document.getElementById('event-text').textContent = 'The manor is quiet for now. Your steward awaits your orders.';
   document.getElementById('event-choices').innerHTML = '';
 }
@@ -852,102 +871,168 @@ function renderChronicle() {
   }).join('');
 }
 
+// Helper: scale a value by game year (capped)
+function scaleByYear(base, perYear, max) {
+  return Math.min(max, Math.floor(base + perYear * (G.year - 1)));
+}
+
 function eventTraveler() {
-  setEvent('A Wandering Scholar',
-    'A learned man seeks shelter at your manor. He offers knowledge of crop yields and animal husbandry in exchange for a meal and a warm bed.',
-    [
-      { text: '🍞 Welcome him (−5 food)', canAfford: () => G.res.food.amount >= 5,
-        fn: () => { G.res.food.amount -= 5; G.happiness = Math.min(100, G.happiness+8);
-          if(!G.tech.crop_rotation.done) { G.tech.crop_rotation.done = true; applyTech('crop_rotation'); addLog('The scholar taught crop rotation! Farms now +50% food.','good'); renderResearch(); }
-          else { addLog('The scholar shared wisdom. +8 happiness.','good'); }
-        }},
-      { text: '🚪 Turn him away', canAfford: () => true,
-        fn: () => { G.happiness -= 4; addLog('The scholar was turned away. The peasants murmur. −4 happiness.','bad'); }},
-    ]);
+  // Scholar gives a bonus to crop rotation research cost reduction rather than free unlock
+  const foodCost = scaleByYear(5, 1, 20);
+  const happyBonus = scaleByYear(8, 1, 20);
+  // Later years: the scholar is actually a professor with better knowledge
+  const title = G.year >= 5 ? 'A Learned Professor' : 'A Wandering Scholar';
+  const desc = G.year >= 5
+    ? `A professor from a great university seeks shelter. He offers refined knowledge of agricultural science in exchange for ${foodCost} food and lodging.`
+    : `A learned man seeks shelter. He offers knowledge of crop yields in exchange for ${foodCost} food.`;
+  setEvent(title, desc, [
+    { text: `🍞 Welcome him (−${foodCost} food)`, canAfford: () => G.res.food.amount >= foodCost,
+      fn: () => {
+        G.res.food.amount -= foodCost;
+        G.happiness = Math.min(100, G.happiness + happyBonus);
+        // Reduce crop_rotation cost or give partial xp bonus
+        if(!G.tech.crop_rotation.done) {
+          // Discount the cost by 5 gold each visit, min 5
+          G.tech.crop_rotation.cost.gold = Math.max(5, (G.tech.crop_rotation.cost.gold||20) - 5);
+          addLog(`The scholar improved your farming knowledge. Crop Rotation research now cheaper. +${happyBonus} happiness.`,'good');
+          renderResearch();
+        } else {
+          // Give a temporary +20% food bonus for one season by increasing farm output briefly
+          G.res.food.amount = Math.min(G.res.food.max, G.res.food.amount + scaleByYear(10, 3, 40));
+          addLog(`The scholar shared advanced techniques. +" ${scaleByYear(10,3,40)} food stockpiled. +${happyBonus} happiness.`,'good');
+        }
+      }},
+    { text: '🚪 Turn him away', canAfford: () => true,
+      fn: () => { G.happiness -= 5; addLog('The scholar was turned away. The peasants murmur. −5 happiness.','bad'); }},
+  ]);
 }
 
 function eventBandits() {
-  const hasSoldiers = G.res.soldiers.amount >= 3;
-  setEvent('Bandits at the Gates!',
-    'A band of desperate men threaten your outlying farms. The village is afraid.',
-    hasSoldiers
-      ? [
-          { text: '⚔️ Send soldiers (−3 soldiers)', canAfford: () => G.res.soldiers.amount >= 3,
-            fn: () => { G.res.soldiers.amount -= 3; G.happiness += 10; G.renown += 3; addLog('Your soldiers drove off the bandits! +10 happiness, +3 renown.','good'); }},
-          { text: '💰 Pay them off (−10 gold)', canAfford: () => G.res.gold.amount >= 10,
-            fn: () => { G.res.gold.amount -= 10; addLog('You paid the bandits. They left peacefully. −10 gold.',''); }},
-          { text: '🙏 Hide and pray', canAfford: () => true,
-            fn: () => { G.res.food.amount = Math.max(0,G.res.food.amount-20); G.happiness -= 10; addLog('The bandits ransacked a farm. −20 food, −10 happiness.','bad'); }},
-        ]
-      : [
-          { text: '💰 Pay them off (−10 gold)', canAfford: () => G.res.gold.amount >= 10,
-            fn: () => { G.res.gold.amount -= 10; G.happiness += 3; addLog('You paid the bandits. They left peacefully. −10 gold.',''); }},
-          { text: '🙏 Hide and pray', canAfford: () => true,
-            fn: () => { G.res.food.amount=Math.max(0,G.res.food.amount-20); G.happiness-=10; addLog('The bandits ransacked a farm. −20 food, −10 happiness.','bad'); }},
-        ]
-  );
+  const yr = G.year;
+  // Scale threat and rewards with year
+  const payGold = scaleByYear(10, 5, 60);
+  const raidFood = scaleByYear(20, 8, 80);
+  const soldierCount = yr >= 4 ? 5 : 3;
+  const happyWin = scaleByYear(10, 2, 25);
+  const renownWin = scaleByYear(3, 1, 12);
+  const hasSoldiers = G.res.soldiers.amount >= soldierCount;
+  const title = yr >= 6 ? 'Raiders at the Gates!' : yr >= 3 ? 'Armed Brigands!' : 'Bandits at the Gates!';
+  const desc = yr >= 6
+    ? `A large war band of raiders has camped outside your walls. They demand tribute or threaten to burn the village.`
+    : `A band of desperate men threaten your outlying farms. The village is afraid.`;
+  const choices = [];
+  if(hasSoldiers) choices.push({
+    text: `⚔️ Send soldiers (−${soldierCount} soldiers)`, canAfford: () => G.res.soldiers.amount >= soldierCount,
+    fn: () => { G.res.soldiers.amount -= soldierCount; G.happiness += happyWin; G.renown += renownWin; addLog(`Your soldiers drove off the ${yr>=6?'raiders':'bandits'}! +${happyWin} happiness, +${renownWin} renown.`,'good'); }
+  });
+  choices.push({
+    text: `💰 Pay tribute (−${payGold} gold)`, canAfford: () => G.res.gold.amount >= payGold,
+    fn: () => { G.res.gold.amount -= payGold; addLog(`You paid the ${yr>=6?'raiders':'bandits'} off. −${payGold} gold.`,''); }
+  });
+  choices.push({
+    text: '🙏 Hide and pray',  canAfford: () => true,
+    fn: () => { G.res.food.amount = Math.max(0,G.res.food.amount-raidFood); G.happiness -= 12; addLog(`They ransacked your stores! −${raidFood} food, −12 happiness.`,'bad'); }
+  });
+  setEvent(title, desc, choices);
 }
 
 function eventMerchant() {
-  setEvent('A Foreign Merchant',
-    'A merchant from a distant city wishes to buy your surplus goods. He offers gold for either food or wood.',
-    [
-      { text: '🌾 Sell food (−20 food, +18 gold)', canAfford: () => G.res.food.amount >= 20,
-        fn: () => { G.res.food.amount -= 20; G.res.gold.amount = Math.min(G.res.gold.max, G.res.gold.amount+18); addLog('Sold food to merchant. +18 gold.','good'); }},
-      { text: '🪵 Sell wood (−20 wood, +14 gold)', canAfford: () => G.res.wood.amount >= 20,
-        fn: () => { G.res.wood.amount -= 20; G.res.gold.amount = Math.min(G.res.gold.max, G.res.gold.amount+14); addLog('Sold timber to merchant. +14 gold.','good'); }},
-      { text: '👋 Send him away', canAfford: () => true,
-        fn: () => addLog('The merchant left, disappointed.') },
-    ]);
+  const yr = G.year;
+  // Scale: early = lone merchant, late = caravan
+  const isCaravan = yr >= 6;
+  const isTraveler = yr <= 2;
+  const title = isCaravan ? 'A Merchant Caravan' : isTraveler ? 'A Lone Peddler' : 'A Foreign Merchant';
+  const foodSell = scaleByYear(20, 8, 80);
+  const woodSell = scaleByYear(20, 8, 80);
+  const foodGold = scaleByYear(18, 7, 75);
+  const woodGold = scaleByYear(14, 5, 55);
+  const stoneSell = scaleByYear(15, 5, 50);
+  const stoneGold = scaleByYear(12, 4, 45);
+  const desc = isCaravan
+    ? `A great merchant caravan from the capital seeks to purchase large quantities of your goods at premium rates.`
+    : isTraveler
+    ? `A lone peddler passes through. He can take a small amount of goods off your hands for a few coins.`
+    : `A merchant from a distant city wishes to buy your surplus goods.`;
+  const choices = [
+    { text: `🌾 Sell grain (−${foodSell} food, +${foodGold} gold)`, canAfford: () => G.res.food.amount >= foodSell,
+      fn: () => { G.res.food.amount -= foodSell; G.res.gold.amount = Math.min(G.res.gold.max, G.res.gold.amount+foodGold); addLog(`Sold grain. +${foodGold} gold.`,'good'); }},
+    { text: `🪵 Sell timber (−${woodSell} wood, +${woodGold} gold)`, canAfford: () => G.res.wood.amount >= woodSell,
+      fn: () => { G.res.wood.amount -= woodSell; G.res.gold.amount = Math.min(G.res.gold.max, G.res.gold.amount+woodGold); addLog(`Sold timber. +${woodGold} gold.`,'good'); }},
+  ];
+  if(!G.res.stone.hidden) choices.push({
+    text: `🪨 Sell stone (−${stoneSell} stone, +${stoneGold} gold)`, canAfford: () => G.res.stone.amount >= stoneSell,
+    fn: () => { G.res.stone.amount -= stoneSell; G.res.gold.amount = Math.min(G.res.gold.max, G.res.gold.amount+stoneGold); addLog(`Sold stone. +${stoneGold} gold.`,'good'); }
+  });
+  choices.push({ text: '👋 Send them away', canAfford: () => true, fn: () => addLog('The merchant departed.') });
+  setEvent(title, desc, choices);
 }
 
 function eventDrought() {
-  setEvent('The Great Drought',
-    'The wells run low and the fields crack. Your farms will fail unless wells are dug.',
+  const yr = G.year;
+  const wellCost = scaleByYear(20, 6, 70);
+  const foodLoss = scaleByYear(25, 8, 70);
+  const title = yr >= 5 ? 'The Great Famine Drought' : 'The Great Drought';
+  setEvent(title,
+    `The wells run low and the fields crack under ${yr>=5?'a relentless':'the summer'} sun. Your farms will fail without action.`,
     [
-      { text: '💰 Dig new wells (−20 gold)', canAfford: () => G.res.gold.amount >= 20,
-        fn: () => { G.res.gold.amount -= 20; G.happiness += 5; addLog('New wells dug. The drought is weathered. −20 gold, +5 happiness.','good'); }},
+      { text: `💰 Dig wells & irrigation (−${wellCost} gold)`, canAfford: () => G.res.gold.amount >= wellCost,
+        fn: () => { G.res.gold.amount -= wellCost; G.happiness += 6; addLog(`New wells dug. Drought weathered. −${wellCost} gold, +6 happiness.`,'good'); }},
+      { text: `🪵 Build water channels (−${Math.floor(wellCost*0.8)} wood)`, canAfford: () => G.res.wood.amount >= Math.floor(wellCost*0.8),
+        fn: () => { const wc=Math.floor(wellCost*0.8); G.res.wood.amount -= wc; G.happiness += 3; addLog(`Wood channels built. Partial relief. −${wc} wood, +3 happiness.`,'good'); }},
       { text: '🙏 Pray for rain (free, risky)', canAfford: () => true,
-        fn: () => { if(Math.random()<0.4){ addLog('The rains came! Disaster averted. +3 happiness.','good'); G.happiness+=3; }
-          else { G.res.food.amount=Math.max(0,G.res.food.amount-25); addLog('No rain came. The harvest withered. −25 food.','bad'); }}},
+        fn: () => { if(Math.random()<0.35){ addLog('Rain came! Disaster averted.','good'); G.happiness+=4; }
+          else { G.res.food.amount=Math.max(0,G.res.food.amount-foodLoss); addLog(`No rain. Crops withered. −${foodLoss} food.`,'bad'); }}},
     ]);
 }
 
 function eventDisease() {
-  setEvent('The Sickness',
-    'Coughing and fever spread through the hovels. Without a physician it will ravage happiness and productivity.',
-    [
-      { text: '🌿 Bring a physician (−15 gold)', canAfford: () => G.res.gold.amount >= 15,
-        fn: () => { G.res.gold.amount -= 15; G.happiness += 10; addLog('The physician contained the sickness. −15 gold, +10 happiness.','good'); }},
-      { text: '🏚️ Quarantine the sick (free)', canAfford: () => true,
-        fn: () => { G.happiness -= 6; addLog('The sick were quarantined. Contained but costly. −6 happiness.','bad'); }},
-    ]);
+  const yr = G.year;
+  const physCost = scaleByYear(15, 5, 60);
+  const happyBonus = scaleByYear(10, 2, 25);
+  const title = yr >= 5 ? 'The Sweating Plague' : 'The Sickness';
+  const desc = yr >= 5
+    ? `A terrible plague sweeps through your people. Without swift action it will devastate your population.`
+    : `Coughing and fever spread through the hovels. Without a physician it will ravage happiness.`;
+  setEvent(title, desc, [
+    { text: `🌿 Bring physicians (−${physCost} gold)`, canAfford: () => G.res.gold.amount >= physCost,
+      fn: () => { G.res.gold.amount -= physCost; G.happiness += happyBonus; addLog(`Physicians treated the sick. −${physCost} gold, +${happyBonus} happiness.`,'good'); }},
+    { text: '🏚️ Quarantine the sick', canAfford: () => true,
+      fn: () => { G.happiness -= 8; addLog('The sick were quarantined. Harsh but effective. −8 happiness.','bad'); }},
+  ]);
 }
 
 function eventNoble() {
-  setEvent('A Noble Visit',
-    'Lord Aldric of the neighboring county wishes to dine at your manor. A grand feast will earn his alliance and boost your renown greatly.',
-    [
-      { text: '🍷 Grand feast (−30 food, −20 gold)', canAfford: () => G.res.food.amount >= 30 && G.res.gold.amount >= 20,
-        fn: () => { G.res.food.amount -= 30; G.res.gold.amount -= 20; G.renown += 20; G.happiness += 8; addLog('The feast was a triumph! +20 renown, +8 happiness.','good'); }},
-      { text: '🤝 Simple welcome (−10 food)', canAfford: () => G.res.food.amount >= 10,
-        fn: () => { G.res.food.amount -= 10; G.renown += 6; addLog('Lord Aldric was modestly pleased. +6 renown.','good'); }},
-      { text: '📜 Decline politely', canAfford: () => true,
-        fn: () => { G.renown = Math.max(0, G.renown-4); addLog('You declined. The lords talk. −4 renown.','bad'); }},
-    ]);
+  const yr = G.year;
+  const feastFood = scaleByYear(30, 8, 100);
+  const feastGold = scaleByYear(20, 6, 80);
+  const feastRenown = scaleByYear(20, 5, 60);
+  const simpleFood = scaleByYear(10, 3, 40);
+  const simpleRenown = scaleByYear(6, 2, 25);
+  const title = yr >= 6 ? 'A Royal Envoy Visits' : 'A Noble Visit';
+  const desc = yr >= 6
+    ? `A royal envoy from the King's court has arrived. How you receive them will determine your standing with the crown.`
+    : `Lord Aldric of the neighboring county wishes to dine at your manor. A grand feast will earn his alliance.`;
+  setEvent(title, desc, [
+    { text: `🍷 Grand feast (−${feastFood} food, −${feastGold} gold)`, canAfford: () => G.res.food.amount >= feastFood && G.res.gold.amount >= feastGold,
+      fn: () => { G.res.food.amount -= feastFood; G.res.gold.amount -= feastGold; G.renown += feastRenown; G.happiness += 10; addLog(`The feast was magnificent! +${feastRenown} renown, +10 happiness.`,'good'); }},
+    { text: `🤝 Modest welcome (−${simpleFood} food)`, canAfford: () => G.res.food.amount >= simpleFood,
+      fn: () => { G.res.food.amount -= simpleFood; G.renown += simpleRenown; addLog(`Your guest was modestly pleased. +${simpleRenown} renown.`,'good'); }},
+    { text: '📜 Decline politely', canAfford: () => true,
+      fn: () => { G.renown = Math.max(0, G.renown-5); addLog('You declined. Word spreads. −5 renown.','bad'); }},
+  ]);
 }
 
 function eventGoodHarvest() {
-  const bonus = Math.floor(12 + Math.random() * 18);
+  const bonus = scaleByYear(12, 4, 60);
   G.res.food.amount = Math.min(G.res.food.max, G.res.food.amount + bonus);
   G.happiness += 5;
   setEvent('A Bountiful Harvest!',
-    `The summer sun has blessed your fields with ${bonus} extra bushels. Celebrate or save the surplus?`,
+    `The ${G.year>=5?'exceptionally fertile':'summer-kissed'} fields yield ${bonus} extra bushels. Celebrate or stockpile?`,
     [
       { text: '🎉 Hold a village feast', canAfford: () => true,
-        fn: () => { G.res.food.amount=Math.max(0,G.res.food.amount-10); G.happiness=Math.min(100,G.happiness+12); addLog(`Bountiful harvest! Feast held. +${bonus} food, +12 happiness.`,'good'); }},
+        fn: () => { G.res.food.amount=Math.max(0,G.res.food.amount-10); G.happiness=Math.min(100,G.happiness+14); addLog(`Harvest feast held! +${bonus} food, +14 happiness.`,'good'); }},
       { text: '🏚️ Save the surplus', canAfford: () => true,
-        fn: () => { addLog(`Bountiful harvest! Surplus saved. +${bonus} food stored for winter.`,'good'); }},
+        fn: () => { addLog(`Harvest surplus stored. +${bonus} food saved for winter.`,'good'); }},
     ]);
 }
 
@@ -955,13 +1040,15 @@ function triggerWinterEvent() {
   const foodNeeded = getPopulation() * 4;
   if(G.res.food.amount < foodNeeded) {
     G.happiness -= 18;
+    const grainCost = scaleByYear(25, 5, 70);
+    const grainGain = scaleByYear(30, 8, 80);
     setEvent('A Bitter Winter',
       'The stores are nearly empty. Hunger gnaws at every belly. Without food, your people will suffer greatly.',
       [
-        { text: '🛒 Buy emergency grain (−25 gold)', canAfford: () => G.res.gold.amount >= 25,
-          fn: () => { G.res.gold.amount -= 25; G.res.food.amount = Math.min(G.res.food.max, G.res.food.amount+30); addLog('Emergency grain purchased. −25 gold, +30 food.','good'); }},
+        { text: `🛒 Buy emergency grain (−${grainCost} gold)`, canAfford: () => G.res.gold.amount >= grainCost,
+          fn: () => { G.res.gold.amount -= grainCost; G.res.food.amount = Math.min(G.res.food.max, G.res.food.amount+grainGain); addLog(`Emergency grain purchased. −${grainCost} gold, +${grainGain} food.`,'good'); }},
         { text: '😔 Endure the famine', canAfford: () => true,
-          fn: () => { G.happiness -= 10; addLog('The winter famine is endured. The people suffer. −10 more happiness.','bad'); }},
+          fn: () => { G.happiness -= 12; addLog('The famine is endured. The people suffer greatly. −12 more happiness.','bad'); }},
       ]);
     addLog('❄️ Winter famine! Stores dangerously low.', 'bad');
   } else {
@@ -1106,35 +1193,35 @@ const BUILDINGS = [
 const ACTIONS = [
   {
     id:'chop', name:'Chop Wood', icon:'🪓', section:'Labor',
-    desc:'Personally chop timber from the forest',
+    desc:'Chop timber from the forest',
     cost: () => ({}),
     canShow: () => true,
-    onDo: () => { const b=4+Math.floor(Math.random()*6); G.res.wood.amount=Math.min(G.res.wood.max,G.res.wood.amount+b); addLog(`You chopped timber. +${b} wood.`,'good'); },
+    onDo: () => { const b=2+Math.floor(Math.random()*3); G.res.wood.amount=Math.min(G.res.wood.max,G.res.wood.amount+b); addLog(`Chopped timber. +${b} wood.`,'good'); },
+    isRepeatable: true, cooldown: 3,
+  },
+  {
+    id:'forage', name:'Forage', icon:'🍄', section:'Labor',
+    desc:'Forage berries and roots',
+    cost: () => ({}),
+    canShow: () => true,
+    onDo: () => { const b=2+Math.floor(Math.random()*4); G.res.food.amount=Math.min(G.res.food.max,G.res.food.amount+b); addLog(`Foraged the wild. +${b} food.`,'good'); },
+    isRepeatable: true, cooldown: 3,
+  },
+  {
+    id:'hunt', name:'Hunt', icon:'🏹', section:'Labor',
+    desc:'Hunt for a larger haul of meat',
+    cost: () => ({}),
+    canShow: () => true,
+    onDo: () => { const b=4+Math.floor(Math.random()*6); G.res.food.amount=Math.min(G.res.food.max,G.res.food.amount+b); addLog(`Hunted in the forest. +${b} food.`,'good'); },
     isRepeatable: true, cooldown: 8,
   },
   {
-    id:'forage', name:'Forage Food', icon:'🍄', section:'Labor',
-    desc:'Forage berries and roots from the wild',
-    cost: () => ({}),
-    canShow: () => true,
-    onDo: () => { const b=3+Math.floor(Math.random()*8); G.res.food.amount=Math.min(G.res.food.max,G.res.food.amount+b); addLog(`Foraged the forest. +${b} food.`,'good'); },
-    isRepeatable: true, cooldown: 10,
-  },
-  {
-    id:'hunt', name:'Go Hunting', icon:'🏹', section:'Labor',
-    desc:'Hunt in the woods for a larger haul of meat',
-    cost: () => ({}),
-    canShow: () => true,
-    onDo: () => { const b=5+Math.floor(Math.random()*10); G.res.food.amount=Math.min(G.res.food.max,G.res.food.amount+b); addLog(`You hunted in the forest. +${b} food.`,'good'); },
-    isRepeatable: true, cooldown: 20,
-  },
-  {
     id:'beg', name:'Beg a Merchant', icon:'🤲', section:'Labor',
-    desc:'Humbly request a coin or two from passing traders',
+    desc:'Request a coin from passing traders',
     cost: () => ({}),
     canShow: () => G.res.gold.amount < 15,
-    onDo: () => { const b=1+Math.floor(Math.random()*4); G.res.gold.amount=Math.min(G.res.gold.max,G.res.gold.amount+b); G.happiness=Math.max(0,G.happiness-2); addLog(`You begged a passing merchant. +${b} gold. Undignified.`,''); },
-    isRepeatable: true, cooldown: 25,
+    onDo: () => { const b=1+Math.floor(Math.random()*3); G.res.gold.amount=Math.min(G.res.gold.max,G.res.gold.amount+b); G.happiness=Math.max(0,G.happiness-2); addLog(`Begged a passing merchant. +${b} gold.`,''); },
+    isRepeatable: true, cooldown: 10,
   },
   {
     id:'recruit', name:'Recruit Soldier', icon:'⚔️', section:'Military',
@@ -1250,6 +1337,8 @@ function updateUI() {
   // Actions
   renderActions();
   renderResearch();
+  // Refresh event choice buttons every ~2 seconds to update affordability
+  if(G.tick % 25 === 0 && _activeChoices.length) renderEventChoices();
 }
 
 // Returns a short production preview string for buildings
@@ -1281,36 +1370,33 @@ function prodPreview(id) {
 function renderResearch() {
   const section = document.getElementById('research-section');
   const availEl = document.getElementById('research-available');
-  const doneEl = document.getElementById('research-done-list');
-  if(!section || !availEl || !doneEl) return;
+  if(!section || !availEl) return;
 
-  const available = TECHS_LIST.filter(t => !t.done && t.canShow());
-  const done = TECHS_LIST.filter(t => t.done);
+  const anyVisible = TECHS_LIST.some(t => t.canShow());
+  if(anyVisible) section.style.display = '';
 
-  // Show section if any tech ever visible
-  if(available.length > 0 || done.length > 0) section.style.display = '';
-
-  // Available techs as clickable buttons
+  // Render all visible techs — done ones are greyed out in place (stable order, no jumping)
   availEl.innerHTML = '';
-  available.forEach(t => {
+  TECHS_LIST.filter(t => t.canShow() || t.done).forEach(t => {
     const cost = t.cost;
-    const affordable = canAfford(cost);
-    const costHtml = Object.entries(cost).map(([k,v]) => {
+    const affordable = !t.done && canAfford(cost);
+    const div = document.createElement('div');
+    div.className = 'research-btn' + (t.done ? ' research-done' : (!affordable ? ' research-locked' : ''));
+
+    const costHtml = t.done ? '' : Object.entries(cost).map(([k,v]) => {
       const res = G.res[k];
       const have = k==='renown' ? G.renown : (res?.amount ?? 0);
-      const icon = k==='renown' ? '⚜' : (res?.icon ?? '');
-      return `<span style="color:${have>=v?'var(--green)':'var(--red)'};">${icon}${v}</span>`;
+      return `<span style="color:${have>=v?'var(--green)':'var(--red)'};">${k==='renown'?'⚜':(res?.icon??'')}${v}</span>`;
     }).join(' ');
 
-    const btn = document.createElement('div');
-    btn.className = 'research-btn' + (affordable ? '' : ' research-locked');
-    btn.innerHTML = `
-      <div class="research-btn-name">${t.name}</div>
+    div.innerHTML = `
+      <div class="research-btn-name">${t.done ? '✓ ' : ''}${t.name}</div>
       <div class="research-btn-desc">${t.desc}</div>
-      <div class="research-btn-cost">${costHtml}</div>
+      ${costHtml ? `<div class="research-btn-cost">${costHtml}</div>` : ''}
     `;
-    if(affordable) {
-      btn.onclick = () => {
+
+    if(!t.done && affordable) {
+      div.onclick = () => {
         spend(t.cost);
         G.tech[t.id].done = true;
         applyTech(t.id);
@@ -1318,17 +1404,11 @@ function renderResearch() {
         G.chronicle.unshift({ eventTitle:'Research', choice: t.name, outcome: t.desc, outType:'good', year:G.year, season:SEASON_NAMES[G.season] });
         renderChronicle();
         renderResearch();
-        _renderedItemIds = ''; // force button rebuild for prod previews
+        _renderedItemIds = '';
       };
     }
-    availEl.appendChild(btn);
+    availEl.appendChild(div);
   });
-
-  // Completed techs as history list (newest first, stable)
-  doneEl.innerHTML = done.reverse().map(t =>
-    `<div class="research-done-item">✓ <strong>${t.name}</strong> — ${t.desc}</div>`
-  ).join('');
-  done.reverse(); // restore order
 }
 
 // Track which items are currently rendered so we only rebuild when the list changes
@@ -1355,7 +1435,12 @@ function renderActions() {
       sections[sec].push(item);
     });
 
-    for(let [sec, items] of Object.entries(sections)) {
+    const SEC_ORDER = ['Labor','Housing','Production','Commerce','Military','Faith','Prestige','Storage'];
+    const sortedSections = Object.entries(sections).sort(([a],[b]) => {
+      const ai = SEC_ORDER.indexOf(a), bi = SEC_ORDER.indexOf(b);
+      return (ai<0?99:ai) - (bi<0?99:bi);
+    });
+    for(let [sec, items] of sortedSections) {
       const secDiv = document.createElement('div');
       secDiv.className = `action-section section-${sec.replace(/\s/g,'_')}`;
       secDiv.innerHTML = `<div class="action-section-title">${sec}</div><div class="action-grid" id="sec-${sec.replace(/\s/g,'_')}"></div>`;
@@ -1371,11 +1456,15 @@ function renderActions() {
         btn.id = 'btn-' + item.id;
         const preview = prodPreview(item.id);
         btn.innerHTML = `
-          <span class="btn-icon">${item.icon}</span>
-          <span class="btn-name">${item.name}</span>
-          <span class="btn-desc">${isTech ? item.desc : (item.desc || '')}</span>
-          ${preview ? `<span style="font-size:11px;color:var(--green);display:block;margin-top:2px">${preview}</span>` : ''}
-          <div class="btn-cost" id="cost-${item.id}"></div>
+          <div class="btn-left">
+            <span class="btn-icon">${item.icon}</span>
+            <span class="btn-name">${item.name}</span>
+            <span class="btn-desc">${item.desc || ''}</span>
+          </div>
+          <div class="btn-right">
+            ${preview ? `<span class="btn-preview">${preview}</span>` : ''}
+            <div class="btn-cost" id="cost-${item.id}"></div>
+          </div>
           <span class="count-badge" id="badge-${item.id}" style="display:none"></span>
         `;
 
