@@ -480,10 +480,8 @@
   /* Population happiness meter */
   .meter-wrap { margin: 6px 0; }
   .meter-label { font-size: 13px; color: var(--ink); margin-bottom: 3px; display: flex; justify-content: space-between; font-weight: 600; }
-  .meter-track { height: 8px; background: var(--parchment-deep); border-radius: 4px; overflow: hidden; }
-  .meter-fill { height: 100%; border-radius: 4px; transition: width 0.5s, background 0.5s; }
-  .meter-fill.happiness { background: linear-gradient(to right, #8b1a1a, #c9a227, #2d5a1b); }
-  .meter-fill.food { background: linear-gradient(to right, #8b1a1a, #c9a227 40%, #4a8a2a); }
+  .meter-track { height: 12px; background: rgba(0,0,0,0.12); border-radius: 6px; overflow: hidden; border: 1px solid rgba(0,0,0,0.1); }
+  .meter-fill { height: 100%; border-radius: 6px; transition: width 0.4s, background-color 0.6s; }
 
   @keyframes shimmer {
     0% { opacity: 0.7; }
@@ -673,6 +671,17 @@ function getPopulation() {
 }
 
 function getHappiness() { return Math.max(0, Math.min(100, G.happiness)); }
+
+// Returns a solid color for a 0-100 meter value: red → orange → amber → yellow-green → green
+function meterColor(pct) {
+  if(pct <= 15)  return '#c0291a'; // deep red — critical
+  if(pct <= 30)  return '#d94e1a'; // red-orange — danger
+  if(pct <= 45)  return '#d97c1a'; // orange — warning
+  if(pct <= 60)  return '#c9a227'; // amber/gold — caution
+  if(pct <= 75)  return '#8db530'; // yellow-green — okay
+  if(pct <= 90)  return '#4a8a2a'; // green — good
+  return '#2d6e1a';                // deep green — excellent
+}
 
 function addLog(text, type='') {
   G.log.unshift({ text, type, tick: G.tick });
@@ -1315,14 +1324,12 @@ function updateUI() {
   const foodPct = Math.round((r.food.amount / r.food.max) * 100);
   document.getElementById('food-pct').textContent = foodPct + '%';
   document.getElementById('food-meter').style.width = foodPct + '%';
+  document.getElementById('food-meter').style.backgroundColor = meterColor(foodPct);
+
   const happyPct = Math.round(getHappiness());
   document.getElementById('happy-pct').textContent = happyPct + '%';
   document.getElementById('happy-meter').style.width = happyPct + '%';
-  // Color the happiness meter
-  const hm = document.getElementById('happy-meter');
-  if(happyPct < 30) hm.style.background = '#8b1a1a';
-  else if(happyPct < 60) hm.style.background = 'linear-gradient(to right,#8b6014,#c9a227)';
-  else hm.style.background = 'linear-gradient(to right,#4a7a20,#2d5a1b)';
+  document.getElementById('happy-meter').style.backgroundColor = meterColor(happyPct);
 
   // Prestige stars (renown based)
   const stars = Math.min(5, Math.floor(G.renown / 20));
