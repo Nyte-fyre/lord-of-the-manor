@@ -169,7 +169,6 @@
     border-radius: 2px;
     background: rgba(255,255,255,0.3);
     border: 1px solid transparent;
-    transition: all 0.2s;
   }
   .resource-item:hover { border-color: var(--parchment-deep); }
   .resource-left { display: flex; align-items: center; gap: 8px; }
@@ -301,6 +300,39 @@
   .log-entry.bad { color: var(--red); }
   .log-entry.event { color: #6b4c11; font-style: italic; }
 
+  /* Chronicle (event history in right panel) */
+  .chronicle-entry {
+    padding: 7px 8px;
+    margin-bottom: 5px;
+    border-left: 3px solid var(--parchment-deep);
+    background: rgba(255,255,255,0.25);
+  }
+  .chronicle-entry.choice-good { border-left-color: var(--green); }
+  .chronicle-entry.choice-bad  { border-left-color: var(--red); }
+  .chronicle-entry.choice-neutral { border-left-color: var(--gold); }
+  .chronicle-event-title {
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    color: var(--ink-light);
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+  .chronicle-choice {
+    font-size: 13px;
+    font-style: italic;
+    color: var(--ink);
+    margin-bottom: 2px;
+  }
+  .chronicle-outcome {
+    font-size: 12px;
+    color: var(--stone);
+  }
+  .chronicle-year {
+    font-size: 10px;
+    color: var(--stone-light);
+    float: right;
+  }
+
   /* Milestone banner */
   #milestone-banner {
     position: fixed;
@@ -387,7 +419,7 @@
   <div id="header">
     <div id="title-block">
       <h1>⚜ LORD OF THE MANOR ⚜</h1>
-      <div class="subtitle">An idle chronicle of feudal ambition &nbsp;·&nbsp; v1.4</div>
+      <div class="subtitle">An idle chronicle of feudal ambition &nbsp;·&nbsp; v1.5</div>
     </div>
     <div id="lord-info">
       <div id="lord-title">LORD OF</div>
@@ -447,7 +479,7 @@
     <div class="panel-body" id="actions-body"></div>
   </div>
 
-  <!-- RIGHT: Events & Log -->
+  <!-- RIGHT: Events & Chronicle -->
   <div class="panel" id="right-panel">
     <div class="panel-title"><span class="icon">🗞</span> The Chronicle</div>
     <div class="panel-body">
@@ -456,7 +488,8 @@
         <div id="event-text">Your manor rests quietly. The peasants toil in the fields and the birds sing. What shall you do, my lord?</div>
         <div id="event-choices"></div>
       </div>
-      <div id="log-list"></div>
+      <div class="divider"></div>
+      <div id="chronicle-list"></div>
     </div>
   </div>
 </div>
@@ -506,6 +539,7 @@ const G = {
   },
 
   log: [],
+  chronicle: [], // event history with choices
   milestones: new Set(),
 };
 
@@ -687,7 +721,10 @@ function triggerRandomEvent() {
   valid[valid.length-1].fn();
 }
 
+let _currentEventTitle = '';
+
 function setEvent(title, text, choices) {
+  _currentEventTitle = title.replace(/^[^a-zA-Z]+/, '').trim(); // strip emoji prefix for chronicle
   document.getElementById('event-title').textContent = title;
   document.getElementById('event-text').textContent = text;
   const c = document.getElementById('event-choices');
@@ -696,7 +733,26 @@ function setEvent(title, text, choices) {
     const btn = document.createElement('button');
     btn.className = 'event-choice-btn';
     btn.textContent = ch.text;
-    btn.onclick = () => { ch.fn(); clearEvent(); };
+    btn.onclick = () => {
+      // Capture log length before choice so we can detect the outcome message added
+      const logBefore = G.log.length;
+      ch.fn();
+      // The choice fn calls addLog with the outcome — grab the newest entry
+      const outcome = G.log.length > logBefore ? G.log[0].text : '';
+      const outType = G.log.length > logBefore ? G.log[0].type : '';
+      // Record to chronicle
+      G.chronicle.unshift({
+        eventTitle: _currentEventTitle,
+        choice: ch.text,
+        outcome,
+        outType,
+        year: G.year,
+        season: SEASON_NAMES[G.season],
+      });
+      if(G.chronicle.length > 30) G.chronicle.pop();
+      clearEvent();
+      renderChronicle();
+    };
     c.appendChild(btn);
   });
 }
@@ -705,6 +761,20 @@ function clearEvent() {
   document.getElementById('event-title').textContent = '⚜ Manor News';
   document.getElementById('event-text').textContent = 'The manor is quiet for now. Your steward awaits your orders.';
   document.getElementById('event-choices').innerHTML = '';
+}
+
+function renderChronicle() {
+  const cl = document.getElementById('chronicle-list');
+  if(!cl) return;
+  cl.innerHTML = G.chronicle.map(e => {
+    const tone = e.outType === 'good' ? 'choice-good' : e.outType === 'bad' ? 'choice-bad' : 'choice-neutral';
+    return `<div class="chronicle-entry ${tone}">
+      <span class="chronicle-year">${e.season}, Yr ${e.year}</span>
+      <div class="chronicle-event-title">${e.eventTitle}</div>
+      <div class="chronicle-choice">→ ${e.choice}</div>
+      ${e.outcome ? `<div class="chronicle-outcome">${e.outcome}</div>` : ''}
+    </div>`;
+  }).join('');
 }
 
 function eventTraveler() {
@@ -720,16 +790,17 @@ function eventTraveler() {
 function eventBandits() {
   addLog('⚔️ Bandits spotted near the village!', 'bad');
   const hasSoldiers = G.res.soldiers.amount >= 3;
+  const canPay = G.res.gold.amount >= 10;
   setEvent('⚔️ Bandits at the Gates!',
     'A band of desperate men threaten your outlying farms. The village is afraid.',
     hasSoldiers
       ? [
-          { text: '⚔️ Send soldiers (−3 soldiers)', fn: () => { G.res.soldiers.amount = Math.max(0, G.res.soldiers.amount-3); G.happiness += 8; G.renown += 5; addLog('Your soldiers drove off the bandits!','good'); }},
-          { text: '💰 Pay them off (−10 gold)', fn: () => { if(G.res.gold.amount>=10){G.res.gold.amount-=10; addLog('You paid the bandits to leave.','');} else { G.res.food.amount=Math.max(0,G.res.food.amount-15); addLog('Could not pay — they raided a farm!','bad'); }}},
+          { text: '⚔️ Send soldiers (−3 soldiers)', fn: () => { G.res.soldiers.amount = Math.max(0, G.res.soldiers.amount-3); G.happiness += 8; addLog('Your soldiers drove off the bandits!','good'); }},
+          { text: `💰 Pay them off (−10 gold)${canPay?'':'  [Not enough gold]'}`, fn: () => { if(G.res.gold.amount>=10){G.res.gold.amount-=10; addLog('You paid the bandits. They left peacefully.','');}else{G.res.food.amount=Math.max(0,G.res.food.amount-15); addLog('Not enough gold — they raided a farm! −15 food.','bad');}}},
         ]
       : [
-          { text: '💰 Pay them off (−10 gold)', fn: () => { if(G.res.gold.amount>=10){G.res.gold.amount-=10; G.happiness+=3; addLog('You paid the bandits to leave.');} else { G.res.food.amount=Math.max(0,G.res.food.amount-15); addLog('Could not pay — they raided!','bad'); }}},
-          { text: '🙏 Hide and pray', fn: () => { G.res.food.amount=Math.max(0,G.res.food.amount-20); G.happiness-=10; addLog('The bandits ransacked a farm. The people are unhappy.','bad'); }},
+          { text: `💰 Pay them off (−10 gold)${canPay?'':'  [Not enough gold]'}`, fn: () => { if(G.res.gold.amount>=10){G.res.gold.amount-=10; G.happiness+=3; addLog('You paid the bandits. They left peacefully.');}else{G.res.food.amount=Math.max(0,G.res.food.amount-15); addLog('Not enough gold — they raided! −15 food.','bad');}}},
+          { text: '🙏 Hide and pray', fn: () => { G.res.food.amount=Math.max(0,G.res.food.amount-20); G.happiness-=10; addLog('The bandits ransacked a farm. −20 food, −10 happiness.','bad'); }},
         ]
   );
 }
@@ -750,8 +821,8 @@ function eventDrought() {
   setEvent('🌵 The Great Drought',
     'The wells run low and the fields crack. The harvest will be poor unless action is taken.',
     [
-      { text: '💰 Dig new wells (−20 gold)', fn: () => { if(G.res.gold.amount>=20){G.res.gold.amount-=20;G.happiness+=5;addLog('New wells dug. The drought has been weathered.','good');}else{G.res.food.amount=Math.max(0,G.res.food.amount-30);addLog('Could not afford wells. Crops failed!','bad');}  }},
-      { text: '🙏 Pray for rain (costs nothing)', fn: () => { const rain=Math.random()<0.4; if(rain){addLog('The rains came! Disaster averted.','good');G.happiness+=3;}else{G.res.food.amount=Math.max(0,G.res.food.amount-20);addLog('No rain came. The harvest withered.','bad');}}},
+      { text: `💰 Dig new wells (−20 gold)${G.res.gold.amount>=20?'':'  [Not enough gold]'}`, fn: () => { if(G.res.gold.amount>=20){G.res.gold.amount-=20;G.happiness+=5;addLog('New wells dug. The drought is weathered. −20 gold.','good');}else{G.res.food.amount=Math.max(0,G.res.food.amount-30);addLog('Could not afford wells. Crops failed! −30 food.','bad');}  }},
+      { text: '🙏 Pray for rain (free, risky)', fn: () => { const rain=Math.random()<0.4; if(rain){addLog('The rains came! Disaster averted.','good');G.happiness+=3;}else{G.res.food.amount=Math.max(0,G.res.food.amount-20);addLog('No rain came. The harvest withered. −20 food.','bad');}}},
     ]);
 }
 
@@ -760,8 +831,8 @@ function eventDisease() {
   setEvent('🤒 The Sickness',
     'Coughing and fever spread through the hovels. The village healer speaks of ill humours.',
     [
-      { text: '🌿 Bring a physician (−15 gold)', fn: () => { if(G.res.gold.amount>=15){G.res.gold.amount-=15;G.happiness+=8;addLog('The physician contained the sickness.','good');}else{G.happiness-=15;addLog('No physician could be afforded. Sickness spread.','bad');}}},
-      { text: '🏚️ Quarantine the sick', fn: () => { G.happiness-=5; addLog('The sick were quarantined. Hard but effective.'); }},
+      { text: `🌿 Bring a physician (−15 gold)${G.res.gold.amount>=15?'':'  [Not enough gold]'}`, fn: () => { if(G.res.gold.amount>=15){G.res.gold.amount-=15;G.happiness+=8;addLog('The physician contained the sickness. −15 gold, +8 happiness.','good');}else{G.happiness-=15;addLog('No physician could be afforded. Sickness spread. −15 happiness.','bad');}}},
+      { text: '🏚️ Quarantine the sick (free)', fn: () => { G.happiness-=5; addLog('The sick were quarantined. Harsh but effective. −5 happiness.'); }},
     ]);
 }
 
@@ -770,9 +841,9 @@ function eventNoble() {
   setEvent('👑 A Noble Visit',
     'Lord Aldric of the neighboring county sends word — he wishes to dine at your manor. His impression of you matters.',
     [
-      { text: '🍷 Host a grand feast (−30 food, −20 gold)', fn: () => { if(G.res.food.amount>=30&&G.res.gold.amount>=20){G.res.food.amount-=30;G.res.gold.amount-=20;G.renown+=15;G.happiness+=5;addLog('The feast was a great success! Your renown grows.','good');}else{addLog('Could not afford the feast. Lord Aldric was unimpressed.','bad'); G.renown-=5;}}},
-      { text: '🤝 Simple welcome (−10 food)', fn: () => { if(G.res.food.amount>=10){G.res.food.amount-=10;G.renown+=5;addLog('Lord Aldric was modestly impressed.','good');}else{addLog('You had barely anything to offer. Embarrassing.','bad');}}},
-      { text: '📜 Decline politely', fn: () => { G.renown -= 3; addLog('You declined the visit. The lords talk.','bad'); }},
+      { text: `🍷 Grand feast (−30 food, −20 gold)${G.res.food.amount>=30&&G.res.gold.amount>=20?'':'  [Cannot afford]'}`, fn: () => { if(G.res.food.amount>=30&&G.res.gold.amount>=20){G.res.food.amount-=30;G.res.gold.amount-=20;G.renown+=15;G.happiness+=5;addLog('The feast was a great success! +15 renown, +5 happiness.','good');}else{addLog('Could not afford the feast. Lord Aldric was unimpressed. −5 renown.','bad'); G.renown=Math.max(0,G.renown-5);}}},
+      { text: `🤝 Simple welcome (−10 food)${G.res.food.amount>=10?'':'  [Not enough food]'}`, fn: () => { if(G.res.food.amount>=10){G.res.food.amount-=10;G.renown+=5;addLog('Lord Aldric was modestly pleased. +5 renown.','good');}else{addLog('You had barely anything to offer. Embarrassing.','bad');}}},
+      { text: '📜 Decline politely', fn: () => { G.renown = Math.max(0, G.renown-3); addLog('You declined the visit. The lords talk. −3 renown.','bad'); }},
     ]);
 }
 
@@ -900,6 +971,35 @@ const BUILDINGS = [
     canShow: () => G.renown >= 20,
     onBuy: () => { G.bldg.manor.hidden=false; addLog('The great manor house stands proud! Your legacy is assured.','good'); },
   },
+  // Storage upgrades — only show when near cap
+  {
+    id:'granary', name:'Build Granary', icon:'🏗️', section:'Storage',
+    desc:`Increases food storage by 100`,
+    cost: () => ({ wood:20, stone:10, gold:15 }),
+    canShow: () => G.res.food.amount >= G.res.food.max * 0.85,
+    onBuy: () => { G.res.food.max += 100; addLog(`Granary built! Food storage now ${G.res.food.max}.`,'good'); },
+  },
+  {
+    id:'lumber_yard', name:'Lumber Yard', icon:'🪵', section:'Storage',
+    desc:`Increases wood storage by 100`,
+    cost: () => ({ wood:25, gold:12 }),
+    canShow: () => G.res.wood.amount >= G.res.wood.max * 0.85,
+    onBuy: () => { G.res.wood.max += 100; addLog(`Lumber yard built! Wood storage now ${G.res.wood.max}.`,'good'); },
+  },
+  {
+    id:'treasury', name:'Expand Treasury', icon:'🏦', section:'Storage',
+    desc:`Increases gold storage by 250`,
+    cost: () => ({ stone:20, gold:50 }),
+    canShow: () => G.res.gold.amount >= G.res.gold.max * 0.85,
+    onBuy: () => { G.res.gold.max += 250; addLog(`Treasury expanded! Gold storage now ${G.res.gold.max}.`,'good'); },
+  },
+  {
+    id:'stone_yard', name:'Stone Yard', icon:'🪨', section:'Storage',
+    desc:`Increases stone storage by 100`,
+    cost: () => ({ wood:15, gold:10 }),
+    canShow: () => !G.res.stone.hidden && G.res.stone.amount >= G.res.stone.max * 0.85,
+    onBuy: () => { G.res.stone.max += 100; addLog(`Stone yard built! Stone storage now ${G.res.stone.max}.`,'good'); },
+  },
 ];
 
 const ACTIONS = [
@@ -970,8 +1070,12 @@ const ACTIONS = [
   },
 ];
 
+const STORAGE_IDS = new Set(['granary','lumber_yard','treasury','stone_yard']);
+
 const TECHS_LIST = Object.entries(G.tech).map(([id,t]) => ({
   id, ...t,
+  section: 'Research',
+  icon: '📖',
   canShow: () => {
     if(id === 'iron_tools') return G.res.iron.amount >= 0 && G.bldg.ironmine.count > 0;
     if(id === 'masonry') return G.bldg.quarry.count > 0;
@@ -1044,10 +1148,6 @@ function updateUI() {
 
   // Actions
   renderActions();
-
-  // Log
-  const ll = document.getElementById('log-list');
-  ll.innerHTML = G.log.slice(0,20).map(e => `<div class="log-entry ${e.type}">${e.text}</div>`).join('');
 }
 
 // Track which items are currently rendered so we only rebuild when the list changes
@@ -1088,10 +1188,12 @@ function renderActions() {
         const btn = document.createElement('button');
         btn.className = 'action-btn';
         btn.id = 'btn-' + item.id;
+        const preview = prodPreview(item.id);
         btn.innerHTML = `
           <span class="btn-icon">${item.icon}</span>
           <span class="btn-name">${item.name}</span>
           <span class="btn-desc">${isTech ? item.desc : (item.desc || '')}</span>
+          ${preview ? `<span style="font-size:11px;color:var(--green);display:block;margin-top:2px">${preview}</span>` : ''}
           <div class="btn-cost" id="cost-${item.id}"></div>
           <span class="count-badge" id="badge-${item.id}" style="display:none"></span>
         `;
@@ -1101,7 +1203,7 @@ function renderActions() {
           const onCooldown = actionCooldowns[item.id] && actionCooldowns[item.id] > G.tick;
           if(!canAfford(cost) || onCooldown) return;
           spend(cost);
-          if(isBldg) {
+          if(isBldg && G.bldg[item.id]) {
             G.bldg[item.id].count++;
             if(G.bldg[item.id].hidden !== undefined) G.bldg[item.id].hidden = false;
           }
@@ -1109,7 +1211,7 @@ function renderActions() {
           if(item.onDo) item.onDo();
           if(isTech) { G.tech[item.id].done = true; applyTech(item.id); addLog(`Research complete: ${item.name}!`, 'good'); }
           if(item.cooldown) actionCooldowns[item.id] = G.tick + item.cooldown * 10;
-          // Force a full rebuild next tick since something changed
+          // Storage buildings: force rebuild since canShow may change
           _renderedItemIds = '';
         };
         grid.appendChild(btn);
@@ -1162,7 +1264,7 @@ function applyTech(id) {
 
 // ===================== INIT =====================
 addLog('You have inherited the Manor of Ashenvale. The land is yours to cultivate.', 'event');
-addLog('Chop wood, forage food, and scout the land to get started.', '');
+addLog('Chop wood, forage food, and get started.', '');
 addLog('Build farms and hovels to grow your village.', '');
 addLog('Year 1, Spring. The birds sing. Begin!', 'good');
 
