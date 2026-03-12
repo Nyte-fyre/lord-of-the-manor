@@ -230,42 +230,55 @@
   .section-Storage   { border-left: 3px solid var(--sec-storage); padding-left: 6px; }
   .section-Labor     { border-left: 3px solid var(--sec-labor); padding-left: 6px; }
 
-  .action-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px; }
+  .action-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 7px; }
 
   .action-btn {
     background: linear-gradient(135deg, var(--parchment-dark), var(--parchment));
     border: 1px solid var(--parchment-deep);
-    padding: 7px 8px;
+    padding: 9px 10px;
     cursor: pointer;
     text-align: left;
     position: relative;
     font-family: 'Crimson Text', serif;
     display: flex;
     flex-direction: row;
-    gap: 6px;
+    gap: 8px;
     align-items: flex-start;
+    min-height: 70px;
   }
   .action-btn:disabled { opacity: 0.45; cursor: not-allowed; }
   .btn-left { flex: 1; min-width: 0; }
-  .btn-right { display: flex; flex-direction: column; align-items: flex-end; justify-content: flex-start; gap: 3px; min-width: 50px; padding-top: 2px; }
-  .action-btn .btn-icon { font-size: 18px; display: block; margin-bottom: 2px; }
-  .action-btn .btn-name {
-    font-family: 'Cinzel', serif;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--ink);
-    display: block;
-    margin-bottom: 1px;
-    line-height: 1.2;
-  }
-  .action-btn .btn-desc { font-size: 11px; color: var(--ink-light); font-style: italic; line-height: 1.3; }
-  .btn-preview { font-size: 11px; color: var(--green); font-weight: 600; text-align: right; white-space: nowrap; }
-  .action-btn .btn-cost {
-    font-size: 11px;
+  .btn-right {
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    gap: 1px;
+    justify-content: flex-start;
+    gap: 3px;
+    min-width: 56px;
+    padding-top: 2px;
+    padding-right: 14px; /* leave room so badge doesn't overlap */
+  }
+  .action-btn .btn-name {
+    font-family: 'Cinzel', serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 3px;
+    line-height: 1.2;
+    flex-wrap: wrap;
+  }
+  .btn-name-emoji { font-size: 16px; line-height: 1; }
+  .action-btn .btn-desc { font-size: 13px; color: var(--ink-light); font-style: italic; line-height: 1.3; }
+  .btn-preview { font-size: 12px; color: var(--green); font-weight: 600; text-align: right; white-space: nowrap; }
+  .action-btn .btn-cost {
+    font-size: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
   }
   .cost-item { display: flex; align-items: center; gap: 2px; white-space: nowrap; }
   .cost-item.can-afford { color: var(--green); font-weight: 600; }
@@ -279,7 +292,7 @@
     color: var(--gold);
     font-family: 'Cinzel', serif;
     font-size: 10px;
-    padding: 1px 4px;
+    padding: 1px 5px;
     border-radius: 8px;
   }
 
@@ -488,7 +501,7 @@
   <div id="header">
     <div id="title-block">
       <h1>LORD OF THE MANOR</h1>
-      <div class="subtitle">An idle chronicle of feudal ambition &nbsp;·&nbsp; v1.7</div>
+      <div class="subtitle">An idle chronicle of feudal ambition &nbsp;·&nbsp; v1.8</div>
     </div>
     <div id="lord-info">
       <div id="lord-title">LORD OF</div>
@@ -605,11 +618,11 @@ const G = {
   },
 
   tech: {
-    crop_rotation: { name:'Crop Rotation', done:false, cost:{gold:20,food:10}, desc:'Farms +50% food' },
-    iron_tools:    { name:'Iron Tools',     done:false, cost:{gold:30,iron:10}, desc:'All workers +25% output', hidden:true },
-    masonry:       { name:'Masonry',         done:false, cost:{gold:25,stone:20}, desc:'Unlock fortifications', hidden:true },
-    trade_routes:  { name:'Trade Routes',    done:false, cost:{gold:50,renown:20}, desc:'Markets produce +100%', hidden:true },
-    chivalry:      { name:'Code of Chivalry',done:false, cost:{gold:40,faith:30}, desc:'+10 happiness, soldiers loyal', hidden:true },
+    crop_rotation: { name:'Crop Rotation', done:false, cost:{gold:20,food:10}, desc:'Farms +50% food', bonus:1.0 },
+    iron_tools:    { name:'Iron Tools',     done:false, cost:{gold:30,iron:10}, desc:'All workers +25% output', hidden:true, bonus:1.0 },
+    masonry:       { name:'Masonry',         done:false, cost:{gold:25,stone:20}, desc:'Unlock fortifications', hidden:true, bonus:1.0 },
+    trade_routes:  { name:'Trade Routes',    done:false, cost:{gold:50,renown:20}, desc:'Markets produce +100%', hidden:true, bonus:1.0 },
+    chivalry:      { name:'Code of Chivalry',done:false, cost:{gold:40,faith:30}, desc:'+10 happiness, soldiers loyal', hidden:true, bonus:1.0 },
   },
 
   log: [],
@@ -681,32 +694,20 @@ function closeMilestone() {
 // ===================== TICK =====================
 function computeRates() {
   const r = G.res;
-  // Reset rates
   for(let k in r) r[k].rate = 0;
 
   const pop = getPopulation();
-  const ironMult = G.tech.iron_tools.done ? 1.25 : 1;
-  const cropMult = G.tech.crop_rotation.done ? 1.5 : 1;
-  const tradeMult = G.tech.trade_routes.done ? 2 : 1;
+  const ironMult  = G.tech.iron_tools.done    ? 1.25 * G.tech.iron_tools.bonus    : 1;
+  const cropMult  = G.tech.crop_rotation.done ? 1.5  * G.tech.crop_rotation.bonus : 1;
+  const tradeMult = G.tech.trade_routes.done  ? 2.0  * G.tech.trade_routes.bonus  : 1;
 
-  // Food from farms minus consumption (scales with pop)
   r.food.rate += G.bldg.farm.count * 1.5 * cropMult * ironMult;
-  r.food.rate -= pop * 0.13; // consumption scales with mouths
-
-  // Wood from sawmills
+  r.food.rate -= pop * 0.13;
   r.wood.rate += G.bldg.sawmill.count * 1.0 * ironMult;
-
-  // Stone
   r.stone.rate += G.bldg.quarry.count * 0.8 * ironMult;
-
-  // Gold from markets + tax
   r.gold.rate += G.bldg.market.count * 0.5 * tradeMult;
-  r.gold.rate += Math.floor(pop / 5) * 0.05; // peasant tax
-
-  // Iron
+  r.gold.rate += Math.floor(pop / 5) * 0.05;
   r.iron.rate += G.bldg.ironmine.count * 0.4 * ironMult;
-
-  // Faith
   r.faith.rate += G.bldg.church.count * 0.5;
 
   // Season modifiers
@@ -877,33 +878,48 @@ function scaleByYear(base, perYear, max) {
 }
 
 function eventTraveler() {
-  // Scholar gives a bonus to crop rotation research cost reduction rather than free unlock
   const foodCost = scaleByYear(5, 1, 20);
-  const happyBonus = scaleByYear(8, 1, 20);
-  // Later years: the scholar is actually a professor with better knowledge
+  const happyBonus = scaleByYear(6, 1, 15);
   const title = G.year >= 5 ? 'A Learned Professor' : 'A Wandering Scholar';
+
+  // Pick a random tech that is already researched (has bonus to improve) or unlockable
+  // Prefer done techs; if none done yet, just give happiness
+  const doneTechs = Object.entries(G.tech).filter(([,t]) => t.done);
+  const unlockedTechs = TECHS_LIST.filter(t => t.canShow() && !G.tech[t.id].done);
+  const boostTarget = doneTechs.length
+    ? doneTechs[Math.floor(Math.random() * doneTechs.length)]
+    : null;
+
+  const boostPct = scaleByYear(5, 2, 20); // % improvement to existing tech effectiveness
+  let boostDesc = '';
+  if(boostTarget) {
+    const [tid, tobj] = boostTarget;
+    boostDesc = `He will improve your ${tobj.name} effectiveness by ${boostPct}%.`;
+  } else {
+    boostDesc = 'He will share general wisdom and lift spirits.';
+  }
+
   const desc = G.year >= 5
-    ? `A professor from a great university seeks shelter. He offers refined knowledge of agricultural science in exchange for ${foodCost} food and lodging.`
-    : `A learned man seeks shelter. He offers knowledge of crop yields in exchange for ${foodCost} food.`;
+    ? `A professor from a distant university seeks shelter. ${boostDesc}`
+    : `A learned man seeks shelter at your manor. ${boostDesc}`;
+
   setEvent(title, desc, [
     { text: `🍞 Welcome him (−${foodCost} food)`, canAfford: () => G.res.food.amount >= foodCost,
       fn: () => {
         G.res.food.amount -= foodCost;
         G.happiness = Math.min(100, G.happiness + happyBonus);
-        // Reduce crop_rotation cost or give partial xp bonus
-        if(!G.tech.crop_rotation.done) {
-          // Discount the cost by 5 gold each visit, min 5
-          G.tech.crop_rotation.cost.gold = Math.max(5, (G.tech.crop_rotation.cost.gold||20) - 5);
-          addLog(`The scholar improved your farming knowledge. Crop Rotation research now cheaper. +${happyBonus} happiness.`,'good');
+        if(boostTarget) {
+          const [tid, tobj] = boostTarget;
+          G.tech[tid].bonus = +(G.tech[tid].bonus + boostPct / 100).toFixed(3);
+          const newBonus = Math.round(G.tech[tid].bonus * 100);
+          addLog(`The scholar improved ${tobj.name} to ${newBonus}% effectiveness. +${happyBonus} happiness.`, 'good');
           renderResearch();
         } else {
-          // Give a temporary +20% food bonus for one season by increasing farm output briefly
-          G.res.food.amount = Math.min(G.res.food.max, G.res.food.amount + scaleByYear(10, 3, 40));
-          addLog(`The scholar shared advanced techniques. +" ${scaleByYear(10,3,40)} food stockpiled. +${happyBonus} happiness.`,'good');
+          addLog(`The scholar shared wisdom with your people. +${happyBonus} happiness.`, 'good');
         }
       }},
     { text: '🚪 Turn him away', canAfford: () => true,
-      fn: () => { G.happiness -= 5; addLog('The scholar was turned away. The peasants murmur. −5 happiness.','bad'); }},
+      fn: () => { G.happiness -= 5; addLog('The scholar was turned away. −5 happiness.', 'bad'); }},
   ]);
 }
 
@@ -1343,16 +1359,16 @@ function updateUI() {
 
 // Returns a short production preview string for buildings
 function prodPreview(id) {
-  const ironMult = G.tech.iron_tools.done ? 1.25 : 1;
-  const cropMult = G.tech.crop_rotation.done ? 1.5 : 1;
-  const tradeMult = G.tech.trade_routes.done ? 2 : 1;
+  const ironMult  = G.tech.iron_tools.done    ? 1.25 * G.tech.iron_tools.bonus    : 1;
+  const cropMult  = G.tech.crop_rotation.done ? 1.5  * G.tech.crop_rotation.bonus : 1;
+  const tradeMult = G.tech.trade_routes.done  ? 2.0  * G.tech.trade_routes.bonus  : 1;
   const previews = {
     farm:        `+${(1.5*cropMult*ironMult).toFixed(1)} food/s`,
     sawmill:     `+${(1.0*ironMult).toFixed(1)} wood/s`,
     quarry:      `+${(0.8*ironMult).toFixed(1)} stone/s`,
     market:      `+${(0.5*tradeMult).toFixed(1)} gold/s`,
     ironmine:    `+${(0.4*ironMult).toFixed(1)} iron/s`,
-    church:      `+0.5 faith/s  +happiness`,
+    church:      `+0.5 faith/s`,
     tavern:      `+happiness`,
     barracks:    `+5 soldier cap`,
     hovel:       `+5 pop`,
@@ -1391,7 +1407,7 @@ function renderResearch() {
 
     div.innerHTML = `
       <div class="research-btn-name">${t.done ? '✓ ' : ''}${t.name}</div>
-      <div class="research-btn-desc">${t.desc}</div>
+      <div class="research-btn-desc">${t.desc}${t.done && G.tech[t.id].bonus > 1.0 ? ` <span style="color:var(--green);font-weight:600">(${Math.round(G.tech[t.id].bonus*100)}%)</span>` : ''}</div>
       ${costHtml ? `<div class="research-btn-cost">${costHtml}</div>` : ''}
     `;
 
@@ -1457,8 +1473,7 @@ function renderActions() {
         const preview = prodPreview(item.id);
         btn.innerHTML = `
           <div class="btn-left">
-            <span class="btn-icon">${item.icon}</span>
-            <span class="btn-name">${item.name}</span>
+            <span class="btn-name">${item.name} <span class="btn-name-emoji">${item.icon}</span></span>
             <span class="btn-desc">${item.desc || ''}</span>
           </div>
           <div class="btn-right">
