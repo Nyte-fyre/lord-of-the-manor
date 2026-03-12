@@ -26,7 +26,7 @@
     background: #1a0f05;
     color: var(--ink);
     font-family: 'Crimson Text', serif;
-    font-size: 16px;
+    font-size: 17px;
     min-height: 100vh;
     background-image: 
       radial-gradient(ellipse at 20% 50%, #2a1505 0%, transparent 60%),
@@ -210,30 +210,24 @@
     padding: 10px 12px;
     cursor: pointer;
     text-align: left;
-    transition: all 0.15s;
     position: relative;
     overflow: hidden;
     font-family: 'Crimson Text', serif;
   }
-  .action-btn:hover:not(:disabled) {
-    border-color: var(--gold);
-    background: linear-gradient(135deg, #e8d4a0, #f0e4b8);
-    box-shadow: 0 3px 8px rgba(0,0,0,0.15);
-  }
   .action-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-  .action-btn .btn-icon { font-size: 22px; display: block; margin-bottom: 3px; }
+  .action-btn .btn-icon { font-size: 24px; display: block; margin-bottom: 3px; }
   .action-btn .btn-name {
     font-family: 'Cinzel', serif;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
     color: var(--ink);
     display: block;
     margin-bottom: 2px;
   }
-  .action-btn .btn-desc { font-size: 12px; color: var(--ink-light); font-style: italic; line-height: 1.3; }
+  .action-btn .btn-desc { font-size: 13px; color: var(--ink-light); font-style: italic; line-height: 1.3; }
   .action-btn .btn-cost {
     margin-top: 5px;
-    font-size: 11px;
+    font-size: 12px;
     color: var(--stone);
     display: flex;
     flex-wrap: wrap;
@@ -393,7 +387,7 @@
   <div id="header">
     <div id="title-block">
       <h1>⚜ LORD OF THE MANOR ⚜</h1>
-      <div class="subtitle">An idle chronicle of feudal ambition</div>
+      <div class="subtitle">An idle chronicle of feudal ambition &nbsp;·&nbsp; v1.2</div>
     </div>
     <div id="lord-info">
       <div id="lord-title">LORD OF</div>
@@ -910,7 +904,7 @@ const BUILDINGS = [
 
 const ACTIONS = [
   {
-    id:'chop', name:'Chop Wood', icon:'🪓', section:'Labour',
+    id:'chop', name:'Chop Wood', icon:'🪓', section:'Labor',
     desc:'Personally chop timber from the forest',
     cost: () => ({}),
     canShow: () => true,
@@ -918,7 +912,7 @@ const ACTIONS = [
     isRepeatable: true, cooldown: 8,
   },
   {
-    id:'forage', name:'Forage Food', icon:'🍄', section:'Labour',
+    id:'forage', name:'Forage Food', icon:'🍄', section:'Labor',
     desc:'Forage berries and roots from the wild',
     cost: () => ({}),
     canShow: () => true,
@@ -926,26 +920,20 @@ const ACTIONS = [
     isRepeatable: true, cooldown: 10,
   },
   {
-    id:'beg', name:'Beg a Merchant', icon:'🤲', section:'Labour',
+    id:'hunt', name:'Go Hunting', icon:'🏹', section:'Labor',
+    desc:'Hunt in the woods for a larger haul of meat',
+    cost: () => ({}),
+    canShow: () => true,
+    onDo: () => { const b=5+Math.floor(Math.random()*10); G.res.food.amount=Math.min(G.res.food.max,G.res.food.amount+b); addLog(`You hunted in the forest. +${b} food.`,'good'); },
+    isRepeatable: true, cooldown: 20,
+  },
+  {
+    id:'beg', name:'Beg a Merchant', icon:'🤲', section:'Labor',
     desc:'Humbly request a coin or two from passing traders',
     cost: () => ({}),
     canShow: () => G.res.gold.amount < 15,
     onDo: () => { const b=1+Math.floor(Math.random()*4); G.res.gold.amount=Math.min(G.res.gold.max,G.res.gold.amount+b); G.happiness=Math.max(0,G.happiness-2); addLog(`You begged a passing merchant. +${b} gold. Undignified.`,''); },
     isRepeatable: true, cooldown: 25,
-  },
-  {
-    id:'scout', name:'Scout the Land', icon:'🗺️', section:'Labour',
-    desc:'Explore your territory for hidden resources',
-    cost: () => ({}),
-    canShow: () => true,
-    onDo: () => {
-      const roll = Math.random();
-      if(roll < 0.3) { G.res.wood.amount=Math.min(G.res.wood.max,G.res.wood.amount+8); addLog('Scouting revealed a timber grove! +8 wood.','good'); }
-      else if(roll < 0.6) { G.res.food.amount=Math.min(G.res.food.max,G.res.food.amount+10); addLog('Scouting found a berry thicket! +10 food.','good'); }
-      else if(roll < 0.8) { G.res.gold.amount=Math.min(G.res.gold.max,G.res.gold.amount+5); addLog('Scouting found an old coin purse! +5 gold.','good'); }
-      else { addLog('Scouting found nothing of value. The land is quiet.',''); }
-    },
-    isRepeatable: true, cooldown: 30,
   },
   {
     id:'recruit', name:'Recruit Soldier', icon:'⚔️', section:'Military',
