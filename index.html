@@ -387,7 +387,7 @@
   <div id="header">
     <div id="title-block">
       <h1>⚜ LORD OF THE MANOR ⚜</h1>
-      <div class="subtitle">An idle chronicle of feudal ambition &nbsp;·&nbsp; v1.3</div>
+      <div class="subtitle">An idle chronicle of feudal ambition &nbsp;·&nbsp; v1.4</div>
     </div>
     <div id="lord-info">
       <div id="lord-title">LORD OF</div>
@@ -951,14 +951,6 @@ const ACTIONS = [
     onDo: () => { G.res.faith.amount = Math.min(G.res.faith.max, G.res.faith.amount + 10); G.happiness = Math.min(100, G.happiness+8); addLog('A service was held. Faith and joy lifted the village.','good'); },
     isRepeatable: true,
     cooldown: 30,
-  },
-  {
-    id:'hunt', name:'Go Hunting', icon:'🏹', section:'Food',
-    desc:'The lord personally hunts for meat',
-    cost: () => ({}),
-    canShow: () => true,
-    onDo: () => { const bonus = 5+Math.floor(Math.random()*10); G.res.food.amount=Math.min(G.res.food.max, G.res.food.amount+bonus); addLog(`You hunted in the forest. +${bonus} food.`,'good'); },
-    isRepeatable: true, cooldown: 20,
   },
   {
     id:'levy', name:'Tax Collection', icon:'📜', section:'Commerce',
