@@ -215,20 +215,11 @@
     overflow: hidden;
     font-family: 'Crimson Text', serif;
   }
-  .action-btn::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(135deg, rgba(201,162,39,0.1), transparent);
-    opacity: 0;
-    transition: opacity 0.15s;
-  }
-  .action-btn:hover:not(:disabled)::after { opacity: 1; }
   .action-btn:hover:not(:disabled) {
     border-color: var(--gold);
+    background: linear-gradient(135deg, #e8d4a0, #f0e4b8);
     box-shadow: 0 3px 8px rgba(0,0,0,0.15);
   }
-  .action-btn:active:not(:disabled) { transform: translateY(0); }
   .action-btn:disabled { opacity: 0.45; cursor: not-allowed; }
   .action-btn .btn-icon { font-size: 22px; display: block; margin-bottom: 3px; }
   .action-btn .btn-name {
@@ -489,9 +480,9 @@ const G = {
   eventCooldown: 0,
 
   res: {
-    gold:    { name:'Gold',    icon:'🪙', amount:10,  max:500,  rate:0 },
-    food:    { name:'Food',    icon:'🌾', amount:20,  max:200,  rate:0 },
-    wood:    { name:'Wood',    icon:'🪵', amount:15,  max:200,  rate:0 },
+    gold:    { name:'Gold',    icon:'🪙', amount:25,  max:500,  rate:0 },
+    food:    { name:'Food',    icon:'🌾', amount:40,  max:200,  rate:0 },
+    wood:    { name:'Wood',    icon:'🪵', amount:30,  max:200,  rate:0 },
     stone:   { name:'Stone',   icon:'🪨', amount:0,   max:200,  rate:0, hidden:true },
     iron:    { name:'Iron',    icon:'⚙️',  amount:0,   max:100,  rate:0, hidden:true },
     faith:   { name:'Faith',  icon:'✝️',  amount:0,   max:100,  rate:0, hidden:true },
@@ -500,7 +491,7 @@ const G = {
 
   bldg: {
     hovel:      { name:'Hovels',     icon:'🏚️',  count:1, pop:2 },
-    farm:       { name:'Farms',      icon:'🌾',  count:0, foodPerTick:1.5 },
+    farm:       { name:'Farms',      icon:'🌾',  count:1, foodPerTick:1.5 },
     sawmill:    { name:'Sawmill',    icon:'🪓',  count:0, woodPerTick:1 },
     quarry:     { name:'Quarry',     icon:'⛏️', count:0, stonePerTick:0.8, hidden:true },
     market:     { name:'Market',     icon:'🏪',  count:0, goldPerTick:0.5, hidden:true },
@@ -919,6 +910,44 @@ const BUILDINGS = [
 
 const ACTIONS = [
   {
+    id:'chop', name:'Chop Wood', icon:'🪓', section:'Labour',
+    desc:'Personally chop timber from the forest',
+    cost: () => ({}),
+    canShow: () => true,
+    onDo: () => { const b=4+Math.floor(Math.random()*6); G.res.wood.amount=Math.min(G.res.wood.max,G.res.wood.amount+b); addLog(`You chopped timber. +${b} wood.`,'good'); },
+    isRepeatable: true, cooldown: 8,
+  },
+  {
+    id:'forage', name:'Forage Food', icon:'🍄', section:'Labour',
+    desc:'Forage berries and roots from the wild',
+    cost: () => ({}),
+    canShow: () => true,
+    onDo: () => { const b=3+Math.floor(Math.random()*8); G.res.food.amount=Math.min(G.res.food.max,G.res.food.amount+b); addLog(`Foraged the forest. +${b} food.`,'good'); },
+    isRepeatable: true, cooldown: 10,
+  },
+  {
+    id:'beg', name:'Beg a Merchant', icon:'🤲', section:'Labour',
+    desc:'Humbly request a coin or two from passing traders',
+    cost: () => ({}),
+    canShow: () => G.res.gold.amount < 15,
+    onDo: () => { const b=1+Math.floor(Math.random()*4); G.res.gold.amount=Math.min(G.res.gold.max,G.res.gold.amount+b); G.happiness=Math.max(0,G.happiness-2); addLog(`You begged a passing merchant. +${b} gold. Undignified.`,''); },
+    isRepeatable: true, cooldown: 25,
+  },
+  {
+    id:'scout', name:'Scout the Land', icon:'🗺️', section:'Labour',
+    desc:'Explore your territory for hidden resources',
+    cost: () => ({}),
+    canShow: () => true,
+    onDo: () => {
+      const roll = Math.random();
+      if(roll < 0.3) { G.res.wood.amount=Math.min(G.res.wood.max,G.res.wood.amount+8); addLog('Scouting revealed a timber grove! +8 wood.','good'); }
+      else if(roll < 0.6) { G.res.food.amount=Math.min(G.res.food.max,G.res.food.amount+10); addLog('Scouting found a berry thicket! +10 food.','good'); }
+      else if(roll < 0.8) { G.res.gold.amount=Math.min(G.res.gold.max,G.res.gold.amount+5); addLog('Scouting found an old coin purse! +5 gold.','good'); }
+      else { addLog('Scouting found nothing of value. The land is quiet.',''); }
+    },
+    isRepeatable: true, cooldown: 30,
+  },
+  {
     id:'recruit', name:'Recruit Soldier', icon:'⚔️', section:'Military',
     desc:'Train a peasant as a fighter',
     cost: () => ({ gold:10, food:5, iron: G.tech.iron_tools.done ? 2 : 3 }),
@@ -1123,6 +1152,7 @@ function applyTech(id) {
 
 // ===================== INIT =====================
 addLog('You have inherited the Manor of Ashenvale. The land is yours to cultivate.', 'event');
+addLog('Chop wood, forage food, and scout the land to get started.', '');
 addLog('Build farms and hovels to grow your village.', '');
 addLog('Year 1, Spring. The birds sing. Begin!', 'good');
 
@@ -1131,7 +1161,7 @@ G.res.gold.hidden = false;
 G.res.food.hidden = false;
 G.res.wood.hidden = false;
 
-setInterval(gameTick, 100);
+setInterval(gameTick, 80);
 updateUI();
 </script>
 </body>
