@@ -1150,6 +1150,31 @@ function updateUI() {
   renderActions();
 }
 
+// Returns a short production preview string for buildings
+function prodPreview(id) {
+  const ironMult = G.tech.iron_tools.done ? 1.25 : 1;
+  const cropMult = G.tech.crop_rotation.done ? 1.5 : 1;
+  const tradeMult = G.tech.trade_routes.done ? 2 : 1;
+  const previews = {
+    farm:        `+${(1.5*cropMult*ironMult).toFixed(1)} food/s`,
+    sawmill:     `+${(1.0*ironMult).toFixed(1)} wood/s`,
+    quarry:      `+${(0.8*ironMult).toFixed(1)} stone/s`,
+    market:      `+${(0.5*tradeMult).toFixed(1)} gold/s`,
+    ironmine:    `+${(0.4*ironMult).toFixed(1)} iron/s`,
+    church:      `+0.5 faith/s  +happiness`,
+    tavern:      `+happiness`,
+    barracks:    `+5 soldier cap`,
+    hovel:       `+5 pop`,
+    walls:       `+defense`,
+    manor:       `+10 renown`,
+    granary:     `food cap +100`,
+    lumber_yard: `wood cap +100`,
+    treasury:    `gold cap +250`,
+    stone_yard:  `stone cap +100`,
+  };
+  return previews[id] || '';
+}
+
 // Track which items are currently rendered so we only rebuild when the list changes
 let _renderedItemIds = '';
 
