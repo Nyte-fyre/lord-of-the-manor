@@ -363,31 +363,36 @@
   .research-title { background: #2a1a4a; }
 
   .research-btn {
-    background: rgba(42,26,74,0.08);
+    background: rgba(42,26,74,0.06);
     border: 1px solid #8a6ab0;
-    padding: 8px 10px;
-    margin-bottom: 6px;
+    padding: 10px 12px;
+    margin-bottom: 7px;
     cursor: pointer;
+    min-height: 52px;
+    user-select: none;
+    transition: background 0.12s;
   }
-  .research-btn:active { background: rgba(42,26,74,0.18); }
+  .research-btn:not(.research-done):not(.research-locked):hover { background: rgba(42,26,74,0.15); }
+  .research-btn:not(.research-done):not(.research-locked):active { background: rgba(42,26,74,0.22); }
   .research-locked {
     opacity: 0.5;
     cursor: not-allowed;
     border-color: var(--parchment-deep);
+    background: rgba(0,0,0,0.02);
   }
   .research-btn-name {
     font-family: 'Cinzel', serif;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
     color: #2a1a4a;
-    margin-bottom: 2px;
+    margin-bottom: 3px;
   }
   .research-btn-desc { font-size: 12px; color: var(--ink-light); font-style: italic; margin-bottom: 4px; }
   .research-btn-cost { font-size: 12px; display: flex; gap: 8px; }
   .research-done {
-    opacity: 0.5;
+    opacity: 0.55;
     cursor: default;
-    background: rgba(30,74,15,0.08);
+    background: rgba(30,74,15,0.07);
     border-color: var(--green);
     pointer-events: none;
   }
@@ -501,7 +506,7 @@
   <div id="header">
     <div id="title-block">
       <h1>LORD OF THE MANOR</h1>
-      <div class="subtitle">An idle chronicle of feudal ambition &nbsp;·&nbsp; v1.8</div>
+      <div class="subtitle">An idle chronicle of feudal ambition &nbsp;·&nbsp; v1.9</div>
     </div>
     <div id="lord-info">
       <div id="lord-title">LORD OF</div>
@@ -1388,40 +1393,73 @@ function renderResearch() {
   const availEl = document.getElementById('research-available');
   if(!section || !availEl) return;
 
-  const anyVisible = TECHS_LIST.some(t => t.canShow());
+  const anyVisible = TECHS_LIST.some(t => t.canShow() || t.done);
   if(anyVisible) section.style.display = '';
 
-  // Render all visible techs — done ones are greyed out in place (stable order, no jumping)
+  // Only rebuild when the set of visible techs changes
+  const visibleIds = TECHS_LIST.filter(t => t.canShow() || t.done).map(t => t.id).join(',');
+  if(availEl.dataset.rendered === visibleIds) {
+    // Just patch affordability styling & bonus display each tick
+    TECHS_LIST.filter(t => t.canShow() || t.done).forEach(t => {
+      const div = document.getElementById('research-card-' + t.id);
+      if(!div) return;
+      const affordable = !t.done && canAfford(t.cost);
+      div.className = 'research-btn' + (t.done ? ' research-done' : (!affordable ? ' research-locked' : ''));
+      // Update cost colors
+      const costEl = div.querySelector('.research-btn-cost');
+      if(costEl && !t.done) {
+        costEl.innerHTML = Object.entries(t.cost).map(([k,v]) => {
+          const res = G.res[k];
+          const have = k==='renown' ? G.renown : (res?.amount ?? 0);
+          return `<span style="color:${have>=v?'var(--green)':'var(--red)'};">${k==='renown'?'⚜':(res?.icon??'')}${v}</span>`;
+        }).join(' ');
+      }
+      // Update bonus display
+      const descEl = div.querySelector('.research-btn-desc');
+      if(descEl && t.done) {
+        const bonus = G.tech[t.id].bonus;
+        descEl.innerHTML = t.desc + (bonus > 1.0 ? ` <span style="color:var(--green);font-weight:600">(${Math.round(bonus*100)}%)</span>` : '');
+      }
+    });
+    return;
+  }
+
+  availEl.dataset.rendered = visibleIds;
   availEl.innerHTML = '';
+
   TECHS_LIST.filter(t => t.canShow() || t.done).forEach(t => {
-    const cost = t.cost;
-    const affordable = !t.done && canAfford(cost);
+    const affordable = !t.done && canAfford(t.cost);
     const div = document.createElement('div');
+    div.id = 'research-card-' + t.id;
     div.className = 'research-btn' + (t.done ? ' research-done' : (!affordable ? ' research-locked' : ''));
 
-    const costHtml = t.done ? '' : Object.entries(cost).map(([k,v]) => {
+    const costHtml = t.done ? '' : Object.entries(t.cost).map(([k,v]) => {
       const res = G.res[k];
       const have = k==='renown' ? G.renown : (res?.amount ?? 0);
       return `<span style="color:${have>=v?'var(--green)':'var(--red)'};">${k==='renown'?'⚜':(res?.icon??'')}${v}</span>`;
     }).join(' ');
 
+    const bonus = G.tech[t.id].bonus;
     div.innerHTML = `
       <div class="research-btn-name">${t.done ? '✓ ' : ''}${t.name}</div>
-      <div class="research-btn-desc">${t.desc}${t.done && G.tech[t.id].bonus > 1.0 ? ` <span style="color:var(--green);font-weight:600">(${Math.round(G.tech[t.id].bonus*100)}%)</span>` : ''}</div>
+      <div class="research-btn-desc">${t.desc}${t.done && bonus > 1.0 ? ` <span style="color:var(--green);font-weight:600">(${Math.round(bonus*100)}%)</span>` : ''}</div>
       ${costHtml ? `<div class="research-btn-cost">${costHtml}</div>` : ''}
     `;
 
-    if(!t.done && affordable) {
+    // Always attach onclick — check affordability inside so it works after resources change
+    if(!t.done) {
       div.onclick = () => {
+        if(t.done || !canAfford(t.cost)) return;
         spend(t.cost);
         G.tech[t.id].done = true;
         applyTech(t.id);
         addLog(`Research complete: ${t.name}! ${t.desc}`, 'good');
-        G.chronicle.unshift({ eventTitle:'Research', choice: t.name, outcome: t.desc, outType:'good', year:G.year, season:SEASON_NAMES[G.season] });
-        renderChronicle();
+        // No chronicle entry — research lives in the left panel only
+        availEl.dataset.rendered = ''; // force full rebuild
         renderResearch();
         _renderedItemIds = '';
       };
+      div.style.cursor = 'pointer';
     }
     availEl.appendChild(div);
   });
