@@ -387,7 +387,7 @@
   <div id="header">
     <div id="title-block">
       <h1>⚜ LORD OF THE MANOR ⚜</h1>
-      <div class="subtitle">An idle chronicle of feudal ambition &nbsp;·&nbsp; v1.2</div>
+      <div class="subtitle">An idle chronicle of feudal ambition &nbsp;·&nbsp; v1.3</div>
     </div>
     <div id="lord-info">
       <div id="lord-title">LORD OF</div>
@@ -1058,76 +1058,106 @@ function updateUI() {
   ll.innerHTML = G.log.slice(0,20).map(e => `<div class="log-entry ${e.type}">${e.text}</div>`).join('');
 }
 
+// Track which items are currently rendered so we only rebuild when the list changes
+let _renderedItemIds = '';
+
 function renderActions() {
   const body = document.getElementById('actions-body');
-  body.innerHTML = '';
 
-  const sections = {};
   const allItems = [
     ...BUILDINGS.filter(b => b.canShow()),
     ...ACTIONS.filter(a => a.canShow()),
     ...TECHS_LIST.filter(t => !t.done && t.canShow()),
   ];
 
-  allItems.forEach(item => {
-    const sec = item.section || 'General';
-    if(!sections[sec]) sections[sec] = [];
-    sections[sec].push(item);
-  });
-
-  for(let [sec, items] of Object.entries(sections)) {
-    const secDiv = document.createElement('div');
-    secDiv.className = 'action-section';
-    secDiv.innerHTML = `<div class="action-section-title">${sec}</div><div class="action-grid" id="sec-${sec}"></div>`;
-    body.appendChild(secDiv);
-
-    const grid = secDiv.querySelector('.action-grid');
-    items.forEach(item => {
-      const isBldg = BUILDINGS.find(b=>b.id===item.id);
-      const isTech = TECHS_LIST.find(t=>t.id===item.id);
-      const cost = item.cost ? item.cost() : {};
-      const affordable = canAfford(cost);
-      const onCooldown = actionCooldowns[item.id] && actionCooldowns[item.id] > G.tick;
-
-      const costHtml = Object.entries(cost).map(([k,v]) => {
-        const res = G.res[k];
-        const have = k==='renown' ? G.renown : (res?.amount ?? 0);
-        const canA = have >= v;
-        const icon = k==='renown' ? '⚜' : (res?.icon ?? '?');
-        return `<span class="cost-item ${canA?'can-afford':'cant-afford'}">${icon}${v}</span>`;
-      }).join('');
-
-      const count = G.bldg[item.id] ? G.bldg[item.id].count : null;
-      const badge = count !== null && count > 0 ? `<span class="count-badge">${count}</span>` : '';
-
-      const btn = document.createElement('button');
-      btn.className = 'action-btn' + (onCooldown ? ' disabled' : '');
-      btn.disabled = !affordable || onCooldown;
-      btn.innerHTML = `
-        ${badge}
-        <span class="btn-icon">${item.icon}</span>
-        <span class="btn-name">${item.name}</span>
-        <span class="btn-desc">${isTech ? item.desc : (item.desc || '')}</span>
-        ${Object.keys(cost).length > 0 ? `<div class="btn-cost">${costHtml}</div>` : ''}
-        ${onCooldown ? `<div style="font-size:11px;color:var(--stone);margin-top:3px">Cooldown...</div>` : ''}
-      `;
-
-      btn.onclick = () => {
-        if(!canAfford(cost)) return;
-        spend(cost);
-        if(isBldg) {
-          G.bldg[item.id].count++;
-          if(G.bldg[item.id].hidden !== undefined) G.bldg[item.id].hidden = false;
-        }
-        if(item.onBuy) item.onBuy();
-        if(item.onDo) item.onDo();
-        if(isTech) { G.tech[item.id].done = true; applyTech(item.id); addLog(`Research complete: ${item.name}!`, 'good'); }
-        if(item.cooldown) actionCooldowns[item.id] = G.tick + item.cooldown * 10;
-        renderActions();
-      };
-      grid.appendChild(btn);
+  // Only fully rebuild if the set of visible items changed
+  const newIds = allItems.map(i=>i.id).join(',');
+  if(newIds !== _renderedItemIds) {
+    _renderedItemIds = newIds;
+    body.innerHTML = '';
+    const sections = {};
+    allItems.forEach(item => {
+      const sec = item.section || 'General';
+      if(!sections[sec]) sections[sec] = [];
+      sections[sec].push(item);
     });
+
+    for(let [sec, items] of Object.entries(sections)) {
+      const secDiv = document.createElement('div');
+      secDiv.className = 'action-section';
+      secDiv.innerHTML = `<div class="action-section-title">${sec}</div><div class="action-grid" id="sec-${sec.replace(/\s/g,'_')}"></div>`;
+      body.appendChild(secDiv);
+
+      const grid = secDiv.querySelector('.action-grid');
+      items.forEach(item => {
+        const isBldg = BUILDINGS.find(b=>b.id===item.id);
+        const isTech = TECHS_LIST.find(t=>t.id===item.id);
+
+        const btn = document.createElement('button');
+        btn.className = 'action-btn';
+        btn.id = 'btn-' + item.id;
+        btn.innerHTML = `
+          <span class="btn-icon">${item.icon}</span>
+          <span class="btn-name">${item.name}</span>
+          <span class="btn-desc">${isTech ? item.desc : (item.desc || '')}</span>
+          <div class="btn-cost" id="cost-${item.id}"></div>
+          <span class="count-badge" id="badge-${item.id}" style="display:none"></span>
+        `;
+
+        btn.onclick = () => {
+          const cost = item.cost ? item.cost() : {};
+          const onCooldown = actionCooldowns[item.id] && actionCooldowns[item.id] > G.tick;
+          if(!canAfford(cost) || onCooldown) return;
+          spend(cost);
+          if(isBldg) {
+            G.bldg[item.id].count++;
+            if(G.bldg[item.id].hidden !== undefined) G.bldg[item.id].hidden = false;
+          }
+          if(item.onBuy) item.onBuy();
+          if(item.onDo) item.onDo();
+          if(isTech) { G.tech[item.id].done = true; applyTech(item.id); addLog(`Research complete: ${item.name}!`, 'good'); }
+          if(item.cooldown) actionCooldowns[item.id] = G.tick + item.cooldown * 10;
+          // Force a full rebuild next tick since something changed
+          _renderedItemIds = '';
+        };
+        grid.appendChild(btn);
+      });
+    }
   }
+
+  // Every tick: just patch disabled state and cost colors — never remove/recreate buttons
+  allItems.forEach(item => {
+    const btn = document.getElementById('btn-' + item.id);
+    if(!btn) return;
+    const cost = item.cost ? item.cost() : {};
+    const onCooldown = actionCooldowns[item.id] && actionCooldowns[item.id] > G.tick;
+    const affordable = canAfford(cost);
+    btn.disabled = !affordable || onCooldown;
+
+    // Update cost display
+    const costEl = document.getElementById('cost-' + item.id);
+    if(costEl) {
+      if(onCooldown) {
+        costEl.innerHTML = `<span style="color:var(--stone);font-size:11px">Cooldown...</span>`;
+      } else {
+        costEl.innerHTML = Object.entries(cost).map(([k,v]) => {
+          const res = G.res[k];
+          const have = k==='renown' ? G.renown : (res?.amount ?? 0);
+          const canA = have >= v;
+          const icon = k==='renown' ? '⚜' : (res?.icon ?? '?');
+          return `<span class="cost-item ${canA?'can-afford':'cant-afford'}">${icon}${v}</span>`;
+        }).join('');
+      }
+    }
+
+    // Update count badge
+    const badge = document.getElementById('badge-' + item.id);
+    if(badge) {
+      const count = G.bldg[item.id] ? G.bldg[item.id].count : null;
+      if(count !== null && count > 0) { badge.textContent = count; badge.style.display = ''; }
+      else badge.style.display = 'none';
+    }
+  });
 }
 
 function applyTech(id) {
