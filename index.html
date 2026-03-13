@@ -390,13 +390,14 @@
   .research-btn-desc { font-size: 12px; color: var(--ink-light); font-style: italic; margin-bottom: 4px; }
   .research-btn-cost { font-size: 12px; display: flex; gap: 8px; }
   .research-done {
-    opacity: 0.55;
+    opacity: 0.8;
     cursor: default;
-    background: rgba(30,74,15,0.07);
-    border-color: var(--green);
+    background: rgba(30,74,15,0.12);
+    border: 2px solid var(--green);
     pointer-events: none;
   }
   .research-done .research-btn-name { color: var(--green); }
+  .research-done .research-btn-desc { color: var(--green); opacity: 0.75; }
 
   /* Improved chronicle readability */
   .chronicle-entry {
@@ -504,7 +505,7 @@
   <div id="header">
     <div id="title-block">
       <h1>LORD OF THE MANOR</h1>
-      <div class="subtitle">An idle chronicle of feudal ambition &nbsp;·&nbsp; v2.0</div>
+      <div class="subtitle">An idle chronicle of feudal ambition &nbsp;·&nbsp; v2.1</div>
     </div>
     <div id="lord-info">
       <div id="lord-title">LORD OF</div>
@@ -574,8 +575,8 @@
     <div class="panel-title"><span class="icon">🗞</span> The Chronicle</div>
     <div class="panel-body">
       <div id="event-area">
-        <div id="event-title">⚜ Awaiting News...</div>
-        <div id="event-text">Your manor rests quietly. The peasants toil in the fields and the birds sing. What shall you do, my lord?</div>
+        <div id="event-title">⚜ Your Domain Awaits</div>
+        <div id="event-text">You have inherited a plot of land and a handful of coins. Build a hovel to attract your first settlers and begin your rise to lordship.</div>
         <div id="event-choices"></div>
       </div>
       <div class="divider"></div>
@@ -594,12 +595,12 @@ const G = {
   ticksPerSeason: 200,
   renown: 0,
   happiness: 50,
-  eventCooldown: 0,
+  eventCooldown: 600, // long delay before first event fires
 
   res: {
-    gold:    { name:'Gold',    icon:'🪙', amount:25,  max:500,  rate:0 },
-    food:    { name:'Food',    icon:'🌾', amount:40,  max:200,  rate:0 },
-    wood:    { name:'Wood',    icon:'🪵', amount:30,  max:200,  rate:0 },
+    gold:    { name:'Gold',    icon:'🪙', amount:12,  max:500,  rate:0 },
+    food:    { name:'Food',    icon:'🌾', amount:0,   max:200,  rate:0 },
+    wood:    { name:'Wood',    icon:'🪵', amount:10,  max:200,  rate:0 },
     stone:   { name:'Stone',   icon:'🪨', amount:0,   max:200,  rate:0, hidden:true },
     iron:    { name:'Iron',    icon:'⚙️',  amount:0,   max:100,  rate:0, hidden:true },
     faith:   { name:'Faith',  icon:'✝️',  amount:0,   max:100,  rate:0, hidden:true },
@@ -607,8 +608,9 @@ const G = {
   },
 
   bldg: {
-    hovel:      { name:'Hovels',     icon:'🏚️',  count:1, pop:2 },
-    farm:       { name:'Farms',      icon:'🌾',  count:1, foodPerTick:1.5 },
+    hovel:      { name:'Hovels',     icon:'🏚️',  count:0, pop:2 },
+    longhouse:  { name:'Longhouses', icon:'🏠',  count:0, pop:2 },
+    farm:       { name:'Farms',      icon:'🌾',  count:0, foodPerTick:1.5 },
     sawmill:    { name:'Sawmill',    icon:'🪓',  count:0, woodPerTick:1 },
     quarry:     { name:'Quarry',     icon:'⛏️', count:0, stonePerTick:0.8, hidden:true },
     market:     { name:'Market',     icon:'🏪',  count:0, goldPerTick:0.5, hidden:true },
@@ -621,7 +623,7 @@ const G = {
   },
 
   tech: {
-    crop_rotation: { name:'Crop Rotation', done:false, cost:{gold:20,food:10}, desc:'Farms +50% food', bonus:1.0 },
+    crop_rotation: { name:'Crop Rotation', done:false, cost:{gold:25,food:15}, desc:'Farms +50% food', bonus:1.0 },
     iron_tools:    { name:'Iron Tools',     done:false, cost:{gold:30,iron:10}, desc:'All workers +25% output', hidden:true, bonus:1.0 },
     masonry:       { name:'Masonry',         done:false, cost:{gold:25,stone:20}, desc:'Unlock fortifications', hidden:true, bonus:1.0 },
     trade_routes:  { name:'Trade Routes',    done:false, cost:{gold:50,renown:20}, desc:'Markets produce +100%', hidden:true, bonus:1.0 },
@@ -630,7 +632,7 @@ const G = {
 
   log: [],
   chronicle: [],
-  unlockedStorage: new Set(), // storage upgrades that have ever been shown
+  unlockedStorage: new Set(),
   milestones: new Set(),
 };
 
@@ -662,12 +664,13 @@ function spend(cost) {
 function getPopulation() {
   let pop = 0;
   pop += G.bldg.hovel.count * 5;
+  pop += G.bldg.longhouse.count * 12;
   pop += G.bldg.farm.count * 2;
   pop += G.bldg.sawmill.count * 1;
   pop += G.bldg.quarry.count * 1;
   pop += G.bldg.market.count * 2;
   pop += G.bldg.tavern.count * 1;
-  return Math.max(3, pop);
+  return Math.max(1, pop); // minimum 1 (the lord themselves)
 }
 
 function getHappiness() { return Math.max(0, Math.min(100, G.happiness)); }
@@ -734,6 +737,8 @@ function computeRates() {
 
 function gameTick() {
   G.tick++;
+  // Freeze time until the player has built their first farm
+  if(G.bldg.farm.count === 0) { updateUI(); return; }
   G.seasonTick++;
   G.eventCooldown = Math.max(0, G.eventCooldown - 1);
 
@@ -780,8 +785,9 @@ function gameTick() {
     (G.milestones.size * 3)
   );
 
-  // Random events
-  if(G.eventCooldown === 0 && Math.random() < 0.003) triggerRandomEvent();
+  // Random events — require at least a farm, slower rate early on
+  const eventChance = G.year <= 2 ? 0.0015 : G.year <= 4 ? 0.002 : 0.003;
+  if(G.eventCooldown === 0 && G.bldg.farm.count >= 1 && Math.random() < eventChance) triggerRandomEvent();
 
   // Milestones
   checkMilestones();
@@ -792,7 +798,8 @@ function gameTick() {
 
 // ===================== EVENTS =====================
 function triggerRandomEvent() {
-  G.eventCooldown = 200;
+  // Longer cooldown early game, tightens as years pass
+  G.eventCooldown = G.year <= 2 ? 400 : G.year <= 4 ? 300 : 200;
   const pop = getPopulation();
   const events = [
     { weight: 3, fn: eventTraveler },
@@ -972,12 +979,12 @@ function eventMerchant() {
   const isCaravan = yr >= 6;
   const isTraveler = yr <= 2;
   const title = isCaravan ? 'A Merchant Caravan' : isTraveler ? 'A Lone Peddler' : 'A Foreign Merchant';
-  const foodSell = scaleByYear(20, 8, 80);
-  const woodSell = scaleByYear(20, 8, 80);
-  const foodGold = scaleByYear(18, 7, 75);
-  const woodGold = scaleByYear(14, 5, 55);
-  const stoneSell = scaleByYear(15, 5, 50);
-  const stoneGold = scaleByYear(12, 4, 45);
+  const foodSell = scaleByYear(10, 6, 80);
+  const woodSell = scaleByYear(10, 6, 80);
+  const foodGold = scaleByYear(8, 6, 75);
+  const woodGold = scaleByYear(6, 4, 55);
+  const stoneSell = scaleByYear(10, 4, 50);
+  const stoneGold = scaleByYear(8, 3, 45);
   const desc = isCaravan
     ? `A great merchant caravan from the capital seeks to purchase large quantities of your goods at premium rates.`
     : isTraveler
@@ -999,8 +1006,8 @@ function eventMerchant() {
 
 function eventDrought() {
   const yr = G.year;
-  const wellCost = scaleByYear(20, 6, 70);
-  const foodLoss = scaleByYear(25, 8, 70);
+  const wellCost = scaleByYear(12, 5, 70);
+  const foodLoss = scaleByYear(15, 6, 70);
   const title = yr >= 5 ? 'The Great Famine Drought' : 'The Great Drought';
   setEvent(title,
     `The wells run low and the fields crack under ${yr>=5?'a relentless':'the summer'} sun. Your farms will fail without action.`,
@@ -1017,7 +1024,7 @@ function eventDrought() {
 
 function eventDisease() {
   const yr = G.year;
-  const physCost = scaleByYear(15, 5, 60);
+  const physCost = scaleByYear(10, 4, 60);
   const happyBonus = scaleByYear(10, 2, 25);
   const title = yr >= 5 ? 'The Sweating Plague' : 'The Sickness';
   const desc = yr >= 5
@@ -1114,16 +1121,31 @@ function checkMilestones() {
 const BUILDINGS = [
   {
     id:'hovel', name:'Build Hovel', icon:'🏚️', section:'Housing',
-    desc:'Shelter for 5 more peasants',
-    cost: () => ({ wood: Math.floor(10 * Math.pow(1.3, G.bldg.hovel.count-1)), gold: Math.floor(5 * Math.pow(1.2, G.bldg.hovel.count-1)) }),
-    canShow: () => true,
-    onBuy: () => { addLog('A new hovel was built. More peasants settle.','good'); },
+    desc:'Shelter for 5 peasants',
+    // First hovel is cheap to get the player started; then scales
+    cost: () => ({
+      wood: G.bldg.hovel.count === 0 ? 8 : Math.floor(12 * Math.pow(1.3, G.bldg.hovel.count - 1)),
+      gold: G.bldg.hovel.count === 0 ? 3 : Math.floor(6 * Math.pow(1.2, G.bldg.hovel.count - 1)),
+    }),
+    canShow: () => G.bldg.longhouse.count === 0 || G.bldg.hovel.count > 0, // hide once longhouse replaces it
+    onBuy: () => { addLog('A new hovel was built. Peasants settle in.','good'); },
+  },
+  {
+    id:'longhouse', name:'Build Longhouse', icon:'🏠', section:'Housing',
+    desc:'A great hall housing 12 souls — worthy of a proper lord',
+    cost: () => ({
+      wood: Math.floor(60 * Math.pow(1.25, G.bldg.longhouse.count)),
+      stone: Math.floor(40 * Math.pow(1.2, G.bldg.longhouse.count)),
+      gold: Math.floor(50 * Math.pow(1.2, G.bldg.longhouse.count)),
+    }),
+    canShow: () => G.bldg.manor.count >= 1,
+    onBuy: () => { addLog('A longhouse rises. Your domain can shelter many more.','good'); },
   },
   {
     id:'farm', name:'Build Farm', icon:'🌾', section:'Production',
     desc:'Produces food each season',
-    cost: () => ({ wood:15, gold:8 }),
-    canShow: () => true,
+    cost: () => ({ wood:12, gold:6 }),
+    canShow: () => G.bldg.hovel.count >= 1,
     onBuy: () => { addLog('A new farm breaks ground. The fields spread.','good'); },
   },
   {
@@ -1225,7 +1247,7 @@ const ACTIONS = [
     id:'chop', name:'Chop Wood', icon:'🪓', section:'Labor',
     desc:'Chop timber from the forest',
     cost: () => ({}),
-    canShow: () => true,
+    canShow: () => G.bldg.farm.count >= 1,
     onDo: () => { const b=2+Math.floor(Math.random()*3); G.res.wood.amount=Math.min(G.res.wood.max,G.res.wood.amount+b); addLog(`Chopped timber. +${b} wood.`,'good'); },
     isRepeatable: true, cooldown: 3,
   },
@@ -1233,7 +1255,7 @@ const ACTIONS = [
     id:'forage', name:'Forage', icon:'🍄', section:'Labor',
     desc:'Forage berries and roots',
     cost: () => ({}),
-    canShow: () => true,
+    canShow: () => G.bldg.farm.count >= 1,
     onDo: () => { const b=2+Math.floor(Math.random()*4); G.res.food.amount=Math.min(G.res.food.max,G.res.food.amount+b); addLog(`Foraged the wild. +${b} food.`,'good'); },
     isRepeatable: true, cooldown: 3,
   },
@@ -1241,7 +1263,7 @@ const ACTIONS = [
     id:'hunt', name:'Hunt', icon:'🏹', section:'Labor',
     desc:'Hunt for a larger haul of meat',
     cost: () => ({}),
-    canShow: () => true,
+    canShow: () => G.bldg.farm.count >= 1,
     onDo: () => { const b=4+Math.floor(Math.random()*6); G.res.food.amount=Math.min(G.res.food.max,G.res.food.amount+b); addLog(`Hunted in the forest. +${b} food.`,'good'); },
     isRepeatable: true, cooldown: 8,
   },
@@ -1249,7 +1271,7 @@ const ACTIONS = [
     id:'beg', name:'Beg a Merchant', icon:'🤲', section:'Labor',
     desc:'Request a coin from passing traders',
     cost: () => ({}),
-    canShow: () => G.res.gold.amount < 15,
+    canShow: () => G.bldg.farm.count >= 1 && G.res.gold.amount < 15,
     onDo: () => { const b=1+Math.floor(Math.random()*3); G.res.gold.amount=Math.min(G.res.gold.max,G.res.gold.amount+b); G.happiness=Math.max(0,G.happiness-2); addLog(`Begged a passing merchant. +${b} gold.`,''); },
     isRepeatable: true, cooldown: 10,
   },
@@ -1295,6 +1317,7 @@ const TECHS_LIST = Object.entries(G.tech).map(([id,t]) => ({
   section: 'Research',
   icon: '📖',
   canShow: () => {
+    if(id === 'crop_rotation') return G.bldg.farm.count >= 3;
     if(id === 'iron_tools') return G.res.iron.amount >= 0 && G.bldg.ironmine.count > 0;
     if(id === 'masonry') return G.bldg.quarry.count > 0;
     if(id === 'trade_routes') return G.bldg.market.count > 0;
@@ -1384,6 +1407,7 @@ function prodPreview(id) {
     tavern:      `+happiness`,
     barracks:    `+5 soldier cap`,
     hovel:       `+5 pop`,
+    longhouse:   `+12 pop`,
     walls:       `+defense`,
     manor:       `+10 renown`,
     granary:     `food cap +100`,
